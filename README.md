@@ -1,2 +1,3 @@
-# simprod_monitor
-Monitoring for IceCube Simulation Production
+# mad_dash
+A dashboard for displaying histograms stored at Madison's Data Warehouse.
+
