@@ -20,8 +20,10 @@ def to_plotly(histogram):
     x_values = [histogram['xmin'] + i*bin_width for i in range(len(histogram['bin_values']))]
     text = "nan(%d) under(%d) over(%d)" % \
            (histogram['nan_count'],histogram['underflow'],histogram['overflow'])
-    return go.Bar( x = x_values,
-                   y = histogram['bin_values'],
-                   text = text,
-                   name = histogram['name'])
+    return go.Figure(data = [go.Bar( x = x_values,
+                                     y = histogram['bin_values'],
+                                     text = text,
+                                     name = histogram['name'])],
+                     layout = go.Layout(title = histogram['name'])
+    )
 

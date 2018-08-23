@@ -9,13 +9,9 @@ import mad_dash
 from mad_dash.histogram_converter import to_plotly
 
 from mad_dash.panes.header_pane import header_pane
-#from mad_dash.panes.plot_pane import plot_pane
-#from mad_dash.panes.plot_menu_pane import plot_menu_pane
+from mad_dash.panes.default_plot_grid import default_plot_grid
 
 def serve_layout():
-    return header_pane
-
-    #return html.Div([header_pane,
-                     #plot_menu_pane, html.Hr(),                     
-                     #plot_pane, html.Hr()
-    #])
+    return html.Div([header_pane,
+                     html.Hr(),
+                     default_plot_grid])
