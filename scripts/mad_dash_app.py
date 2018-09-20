@@ -6,6 +6,7 @@ sys.path.insert(0,join(os.environ['HOME'], 'mad_dash/src'))
 
 import dash
 from dash.dependencies import Input, Output
+import plotly.graph_objs as go
 
 from mad_dash.serve_layout import serve_layout
 from mad_dash.simprod_db import spdb
@@ -46,7 +47,7 @@ def update_histogram_dropdown(db_name, collection_name):
     return 'There are %d histograms in this collection' % len(histogram_names)
 
 @app.callback(
-    Output('plot_histogram', 'figure'),
+    Output('plot_linear_histogram', 'figure'),
     [Input('db_dropdown', 'value'),
      Input('coll_dropdown', 'value'),
      Input('hist_dropdown', 'value')])
@@ -54,6 +55,20 @@ def update_histogram_dropdown(db_name, collection_name, histogram_name):
     coll = spdb[db_name][collection_name]
     histogram = coll.find_one({'name': histogram_name})
     return to_plotly(histogram)
+
+@app.callback(
+    Output('plot_log_histogram', 'figure'),
+    [Input('db_dropdown', 'value'),
+     Input('coll_dropdown', 'value'),
+     Input('hist_dropdown', 'value')])
+def update_histogram_dropdown(db_name, collection_name, histogram_name):
+    coll = spdb[db_name][collection_name]
+    histogram = coll.find_one({'name': histogram_name})
+    layout = go.Layout(title = histogram['name'],
+                       yaxis = {'type': 'log',
+                                'autorange': True})
+    print(histogram['name'])
+    return to_plotly(histogram, layout = layout)
 
 @app.callback(
     Output('one-one', 'figure'),

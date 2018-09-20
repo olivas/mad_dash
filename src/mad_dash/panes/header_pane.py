@@ -14,9 +14,15 @@ url_input = dcc.Input(id = 'url_input',
                       style = {'text-align': 'center'})
 
 dbs = [n for n in spdb.database_names() if n != 'admin' and n!= 'local']
-db_dropdown = dcc.Dropdown(id = 'db_dropdown',
-                           options = [{'label': i, 'value': i} for i in dbs],
-                           value = 'simprod_histograms')
+#db_dropdown = dcc.Dropdown(id = 'db_dropdown',
+#                           options = [{'label': i, 'value': i} for i in dbs],
+#                           value = 'simprod_histograms')
+db_dropdown = dcc.Input(id = 'db_dropdown',
+                        style = {'text-align': 'center'},
+                        readonly = True,
+                        size = 33,
+                        type = 'text',
+                        value = 'simprod_histograms')
 
 db = spdb[db_dropdown.value]
 collection_names = [n for n in db.collection_names()
@@ -34,11 +40,6 @@ if 'filelist' in histogram_names:
     histogram_names.remove('filelist')
 
 histograms = [coll.find_one({'name': name}) for name in histogram_names]
-for h in histograms:
-    if 'bin_values' in h:
-        print(h)
-
-print('non_empty_histograms')
 non_empty_histograms = [h for h in histograms if any(h['bin_values'])]
 n_empty = len(histogram_names) - len(non_empty_histograms)
 options = [{'label': i, 'value': i} for i in histogram_names]
@@ -63,7 +64,14 @@ header_pane = html.Div([html.H1("Mad Dash"),
                                   html.H4('There are %d empty histograms' % n_empty,
                                           id = 'n-empty-histograms'),
                                   hist_dropdown,
-                                  dcc.Graph(id='plot_histogram')]),
+                                  html.Div([html.Div(dcc.Graph(id='plot_linear_histogram'),
+                                                     className = 'two columns',
+                                                     style = {'width': '45%'}),
+                                            html.Div(dcc.Graph(id='plot_log_histogram'),
+                                                     className = 'two columns',
+                                                     style = {'width': '45%'})],
+                                           className = 'row')
+                                  ]),
                         html.Hr()],
                        style = {'textAlign': 'center'})    
 

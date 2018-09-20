@@ -2,7 +2,7 @@
 
 import plotly.graph_objs as go
 
-def to_plotly(histogram):
+def to_plotly(histogram, layout = None):
     '''
     This function converts a histogram assuming the following
     dictionary structure
@@ -20,10 +20,14 @@ def to_plotly(histogram):
     x_values = [histogram['xmin'] + i*bin_width for i in range(len(histogram['bin_values']))]
     text = "nan(%d) under(%d) over(%d)" % \
            (histogram['nan_count'],histogram['underflow'],histogram['overflow'])
+
+    if not layout:
+        layout = go.Layout(title = histogram['name'])
+    
     return go.Figure(data = [go.Bar( x = x_values,
                                      y = histogram['bin_values'],
                                      text = text,
                                      name = histogram['name'])],
-                     layout = go.Layout(title = histogram['name'])
+                     layout = layout
     )
 
