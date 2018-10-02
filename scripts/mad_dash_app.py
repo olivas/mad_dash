@@ -2,7 +2,12 @@
 
 import sys, os
 from os.path import join
-sys.path.insert(0,join(os.environ['HOME'], 'mad_dash/src'))
+
+import socket
+if socket.gethostname() == 'mad-dash':
+    sys.path.insert(0,join(os.environ['HOME'], 'dashboard/mad_dash/src'))
+else:
+    sys.path.insert(0,join(os.environ['HOME'], 'mad_dash/src'))
 
 import dash
 from dash.dependencies import Input, Output
