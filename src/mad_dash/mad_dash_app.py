@@ -3,10 +3,6 @@
 import sys, os
 from os.path import join
 
-import socket
-if socket.gethostname() != 'mad-dash':
-    sys.path.insert(0,join(os.environ['HOME'], 'mad_dash/src'))
-
 import dash, flask
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
