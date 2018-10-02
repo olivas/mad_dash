@@ -9,7 +9,7 @@ if socket.gethostname() == 'mad-dash':
 else:
     sys.path.insert(0,join(os.environ['HOME'], 'mad_dash/src'))
 
-import dash
+import dash, flask
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 
@@ -17,11 +17,12 @@ from mad_dash.serve_layout import serve_layout
 from mad_dash.simprod_db import spdb
 from mad_dash.histogram_converter import to_plotly
 
-app = dash.Dash('Mad Dash')
+app = dash.Dash('Mad Dash', server = flask.Flask(__name__))
 app.layout = serve_layout()
 app.css.append_css({
     'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
 })
+server = app.server
 
 @app.callback(
     Output('coll_dropdown', 'options'),
@@ -156,5 +157,5 @@ def update_default_histograms(db_name, collection_name):
     histogram = coll.find_one({'name': 'LogQtot'})
     return to_plotly(histogram)
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+if __name__ == '__main__':    
+    app.run_server(debug=True, port=4000)
