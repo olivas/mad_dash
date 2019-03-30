@@ -8,7 +8,7 @@ from mad_dash.simprod_db import spdb
 
 url_input = dcc.Input(id = 'url_input',
                       value = 'mongodb-simprod.icecube.wisc.edu',
-                      readonly = True,
+                      readOnly = True,
                       size = 33,
                       type = 'text',
                       style = {'text-align': 'center'})
@@ -19,7 +19,7 @@ dbs = [n for n in spdb.database_names() if n != 'admin' and n!= 'local']
 #                           value = 'simprod_histograms')
 db_dropdown = dcc.Input(id = 'db_dropdown',
                         style = {'text-align': 'center'},
-                        readonly = True,
+                        readOnly = True,
                         size = 33,
                         type = 'text',
                         value = 'simprod_histograms')
@@ -30,7 +30,7 @@ collection_names = [n for n in db.collection_names()
 
 coll_dropdown = dcc.Dropdown(id = 'coll_dropdown',
                              options = [{'label': i, 'value': i} for i in collection_names],
-                             value = 'IceCube:2016:filtered:level2:CORSIKA-in-ice:20263')
+                             value = 'icecube:test-data:trunk:production-histograms')
 
 coll = db[coll_dropdown.value]
 histogram_names = [doc['name'] for doc in
