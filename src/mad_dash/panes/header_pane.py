@@ -14,9 +14,6 @@ url_input = dcc.Input(id = 'url_input',
                       style = {'text-align': 'center'})
 
 dbs = [n for n in spdb.database_names() if n != 'admin' and n!= 'local']
-#db_dropdown = dcc.Dropdown(id = 'db_dropdown',
-#                           options = [{'label': i, 'value': i} for i in dbs],
-#                           value = 'simprod_histograms')
 db_dropdown = dcc.Input(id = 'db_dropdown',
                         style = {'text-align': 'center'},
                         readOnly = True,
@@ -35,6 +32,9 @@ coll_dropdown = dcc.Dropdown(id = 'coll_dropdown',
 coll = db[coll_dropdown.value]
 histogram_names = [doc['name'] for doc in
                    db[coll_dropdown.value].find({'name' : {'$ne':'filelist'}})]
+
+filelist = [doc['name'] for doc in
+            db[coll_dropdown.value].find({'name' : 'filelist'})]
 
 if 'filelist' in histogram_names:
     histogram_names.remove('filelist')
@@ -58,7 +58,9 @@ header_pane = html.Div([html.H1("Mad Dash"),
                                            style = {'width': '45%'})],
                                  className = 'row'), 
                         html.Div([html.H3('Collections'), coll_dropdown]),
-                        html.Div([html.H3('Histogram'),
+                        html.Div([html.H3('Histogram'), 
+                                 html.H4('%d I3Files went into these histograms' % len(filelist),
+                                          id = 'histogram-filelist'),
                                   html.H4('There are %d histograms in this collection' % len(histogram_names),
                                           id = 'histogram-text'),
                                   html.H4('There are %d empty histograms' % n_empty,
