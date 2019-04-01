@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import logging
-#from scipy.stats.mstats import chisquare
+
 from scipy.stats import chisqprob
 from scipy.stats import anderson_ksamp
 from scipy.stats.mstats import ks_twosamp
@@ -12,7 +12,7 @@ from multiprocessing import Pool, TimeoutError
 
 def chisquare(s1, s2):
     '''
-    Compare samples s1 ands2 with a Chi^2 test.
+    Compare samples s1 and s2 with a Chi^2 test.
     Output:
         chisq : float
             A Chi^2 sum over all bins.
@@ -23,7 +23,7 @@ def chisquare(s1, s2):
           it fails for two samples.  I suspect I know why, but it 
           will be important to verify.
     '''
-    # calculate the \chi^2 test statistic
+
     terms = [(u - v)**2/float((u + v)) \
              for u,v in zip(s1, s2)\
              if u > 0 or v > 0]
@@ -116,7 +116,6 @@ def compare(h1, h2):
     pool = Pool(processes=3)
     
     try:
-        #chi2_result = chisquare(h1['bin_values'], h2['bin_values'])
         res = pool.apply_async(chisquare, (h1['bin_values'], h2['bin_values']))
         chi2_result = res.get(timeout=1)
         result['chisq'] = {'T': chi2_result[0], 'pvalue': chi2_result[1]}
@@ -124,7 +123,6 @@ def compare(h1, h2):
         result['chisq'] = {'pvalue': 0, "Exception": str(e)}
 
     try:
-        #ks_result = ks_twosamp(h1['bin_values'], h2['bin_values'])
         res = pool.apply_async(ks_twosamp, (h1['bin_values'], h2['bin_values']))
         ks_result = res.get(timeout=10)
         result['KS'] = {'T': ks_result[0], 'pvalue': ks_result[1]}
@@ -132,7 +130,6 @@ def compare(h1, h2):
         result['KS'] = {'pvalue': 0, "Exception": str(e)}
 
     try:
-        #ad_result = anderson_ksamp([h1['bin_values'], h2['bin_values']], )
         res = pool.apply_async(anderson_ksamp, (h1['bin_values'], h2['bin_values']))
         ad_result = res.get(timeout=10)
         result['AD'] = {'T': ad_result[0], 'pvalue': ad_result[2]}
@@ -143,4 +140,3 @@ def compare(h1, h2):
     pool.join()
         
     return result
-
