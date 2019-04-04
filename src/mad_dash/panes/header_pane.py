@@ -30,11 +30,8 @@ coll_dropdown = dcc.Dropdown(id = 'coll_dropdown',
                              value = 'icecube:test-data:trunk:production-histograms')
 
 coll = db[coll_dropdown.value]
-histogram_names = [doc['name'] for doc in
-                   db[coll_dropdown.value].find({'name' : {'$ne':'filelist'}})]
-
-filelist = [doc['name'] for doc in
-            db[coll_dropdown.value].find({'name' : 'filelist'})]
+histogram_names = [doc['name'] for doc in coll.find({'name' : {'$ne':'filelist'}})]
+filelist = coll.find_one({'name' : 'filelist'})['files']
 
 if 'filelist' in histogram_names:
     histogram_names.remove('filelist')
