@@ -6,21 +6,6 @@ import random
 
 from mad_dash.simprod_db import spdb
 
-url_input = dcc.Input(id = 'url_input',
-                      value = 'mongodb-simprod.icecube.wisc.edu',
-                      readOnly = True,
-                      size = 33,
-                      type = 'text',
-                      style = {'text-align': 'center'})
-
-dbs = [n for n in spdb.database_names() if n != 'admin' and n!= 'local']
-db_dropdown = dcc.Input(id = 'db_dropdown',
-                        style = {'text-align': 'center'},
-                        readOnly = True,
-                        size = 33,
-                        type = 'text',
-                        value = 'simprod_histograms')
-
 db = spdb[db_dropdown.value]
 collection_names = [n for n in db.collection_names()
                     if n not in ['system.indexes']]
@@ -48,6 +33,9 @@ hist_dropdown = dcc.Dropdown(id = 'hist_dropdown',
                              options = options,
                              value = default_histogram['name'])
 
+filelist_message = "These histograms were generated from %d %s" %\
+                   (len(filelist), "I3File" if len(filelist) == 1 else "I3Files")
+
 header_pane = html.Div([html.H1("Mad Dash"),
                         html.Hr(),
                         html.Div([html.Div([html.H3('Database URL'), url_input],
@@ -59,8 +47,7 @@ header_pane = html.Div([html.H1("Mad Dash"),
                                  className = 'row'), 
                         html.Div([html.H3('Collections'), coll_dropdown]),
                         html.Div([html.H3('Histogram'), 
-                                 html.H4('%d I3Files went into these histograms' % len(filelist),
-                                          id = 'histogram-filelist'),
+                                  html.H4(filelist_message, id = 'histogram-filelist'),
                                   html.H4('There are %d histograms in this collection' % len(histogram_names),
                                           id = 'histogram-text'),
                                   html.H4('There are %d empty histograms' % n_empty,
