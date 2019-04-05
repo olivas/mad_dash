@@ -16,13 +16,10 @@ def extract_histograms(database_url, database_name, collection_name):
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
+    histograms = collection.find({})
 
-    histogram_names = [doc['name'] for doc in
-                       collection.find({'name' : {'$ne':'filelist'}})]
-
-    return [collection.find_one({'name': name})
-            for name in histogram_names
-            if name != 'filelist']
+    return [h for h in histograms
+            if h['name'] != 'filelist']
 
 def layout():
     return html.Div([
@@ -86,18 +83,13 @@ def set_rhs_collection_options(database_url, database_name):
                Input('database-name-dropdown-tab2', 'value'),
                Input('collection-dropdown-lhs-tab2', 'value'),
                Input('collection-dropdown-rhs-tab2', 'value')])
-def compare_collections(database_url, database_name, lhs_collection, rhs_collection):
-    print('WTF')
+def compare_collections(database_url,
+                        database_name,
+                        lhs_collection,
+                        rhs_collection):
     client = create_simprod_db_client(database_url)
     db = client[database_name]
-
-    print('extracting lhs histograms...')
     lhs_histograms = extract_histograms(database_url, database_name, lhs_collection)
-    print('done.')
-    print('extracting rhs histograms')
     rhs_histograms = extract_histograms(database_url, database_name, rhs_collection)
-    print('done.')
-
-    print('ugh.')
     return 'PASS'
-                           
+

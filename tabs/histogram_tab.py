@@ -85,9 +85,7 @@ def update_histogram_filelist_message(database_name, collection_name, database_u
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
-
-    filelist = [doc['name'] for doc in
-                db[collection_name].find({'name' : 'filelist'})]
+    filelist = collection.find_one({'name' : 'filelist'})['files']
     
     filelist_message = "Histograms from '%s' were generated from %d %s" %\
                        (collection_name,
@@ -107,7 +105,8 @@ def update_n_histograms_message(database_name, collection_name, database_url):
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
-    histogram_names = [d['name'] for d in collection.find()]    
+    cursor = collection.find()
+    histogram_names = [d['name'] for d in cursor]
     return 'There are %d histograms in this collection' % len(histogram_names)
 
 @app.callback(Output('n-empty-histograms-message-tab1', 'children'),
@@ -121,14 +120,10 @@ def update_n_empty_histograms_message(database_name, collection_name, database_u
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
-    histogram_names = [d['name'] for d in collection.find()]
-    # this is crazy
-    # make this a server-side call
-    histograms = [collection.find_one({'name': name})
-                  for name in histogram_names
-                  if name != 'filelist']
+    cursor = collection.find()
+    histograms = [h for h in cursor if h['name'] != 'filelist']                  
     non_empty_histograms = [h for h in histograms if any(h['bin_values'])]
-    n_empty = len(histogram_names) - len(non_empty_histograms)    
+    n_empty = len(histograms) - len(non_empty_histograms)    
     return 'There are %d empty histograms' % n_empty
 
 @app.callback(Output('histogram-dropdown-tab1', 'options'),
@@ -142,7 +137,8 @@ def update_histogram_dropdown_options(database_name, collection_name, database_u
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
-    histogram_names = [d['name'] for d in collection.find()]    
+    cursor = collection.find()
+    histogram_names = [d['name'] for d in cursor] 
     return [{'label': name, 'value': name} for name in histogram_names]
 
 @app.callback(
