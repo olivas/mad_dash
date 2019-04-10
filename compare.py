@@ -1,35 +1,11 @@
 #!/usr/bin/env python
 import logging
 
-from scipy.stats import chisqprob
+from scipy.stats import chisquare
 from scipy.stats import anderson_ksamp
 from scipy.stats.mstats import ks_twosamp
 
 from multiprocessing import Pool, TimeoutError
-
-# need a dictionary of comparison objects.
-# we'll want different comparisons for different histograms
-
-def chisquare(s1, s2):
-    '''
-    Compare samples s1 and s2 with a Chi^2 test.
-    Output:
-        chisq : float
-            A Chi^2 sum over all bins.
-        p : float
-            The p-value according to the Chi^2 distribution, nDOF = n(bins).
-
-    TODO: Go through the scipy chisquare and find out exactly why
-          it fails for two samples.  I suspect I know why, but it 
-          will be important to verify.
-    '''
-
-    terms = [(u - v)**2/float((u + v)) \
-             for u,v in zip(s1, s2)\
-             if u > 0 or v > 0]
-    chisq = sum(terms)
-    return chisq, chisqprob(chisq, df = len(terms))
-
 
 def both_empty(h1, h2):
     '''
