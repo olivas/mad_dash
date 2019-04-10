@@ -11,6 +11,8 @@ from dash.dependencies import State
 from db import create_simprod_db_client
 from application import app
 from compare import compare
+from histogram_converter import two_plotly
+import plotly.graph_objs as go
 
 def extract_histograms(database_url, database_name, collection_name):
     '''
@@ -43,7 +45,15 @@ def layout():
                      value='icecube:test-data:trunk:production-histograms'),
         html.H3(id='collection-comparison-result-tab2'),
         html.Button('go', id='comparison-go-button-tab2'),
-        html.Hr()
+        html.Hr(),
+        dcc.Dropdown(id='histogram-dropdown-tab2'),
+        html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab2'),
+                           className = 'two columns',
+                           style = {'width': '45%'}),
+                  html.Div(dcc.Graph(id='plot-log-histogram-tab2'),
+                           className = 'two columns',
+                           style = {'width': '45%'})],
+                 className = 'row')
     ])
 
 
@@ -113,8 +123,80 @@ def compare_collections(n_clicks,
     for name, result in results.items():
         for r_name, result in result.items():
             if result['pvalue'] < 1.0:
-                print("[%s] %s" % (name, result))
+                print("[%s] %s: %s" % (name, r_name, result))
 
     print("compare_collections: Done.")
     return 'PASS'
+
+@app.callback(Output('histogram-dropdown-tab2', 'options'),
+              [Input('comparison-go-button-tab2', 'n_clicks')],
+              [State('database-name-dropdown-tab2', 'value'),
+               State('collection-dropdown-lhs-tab2', 'value'),
+               State('collection-dropdown-rhs-tab2', 'value'),
+               State('database-url-input-tab2', 'value')])
+def update_histogram_dropdown_options(n_clicks,
+                                      database_name,
+                                      lhs_collection_name,
+                                      rhs_collection_name,
+                                      database_url):
+    if not n_clicks:
+        return
+    
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    lhs_collection = db[lhs_collection_name]
+    rhs_collection = db[rhs_collection_name]
+    rhs_cursor = rhs_collection.find()
+    lhs_cursor = lhs_collection.find()
+    rhs_histogram_names = [d['name'] for d in rhs_cursor]
+    lhs_histogram_names = [d['name'] for d in lhs_cursor]
+    histogram_names = [n for n in lhs_histogram_names if n in rhs_histogram_names]
+    return [{'label': name, 'value': name} for name in histogram_names]
+
+
+@app.callback(
+    Output('plot-linear-histogram-tab2', 'figure'),
+    [Input('histogram-dropdown-tab2', 'value')],
+    [State('database-name-dropdown-tab2', 'value'),
+     State('collection-dropdown-lhs-tab2', 'value'),
+     State('collection-dropdown-rhs-tab2', 'value'),
+     State('database-url-input-tab2', 'value')])
+def update_linear_histogram_dropdown(histogram_name,
+                                     database_name,
+                                     lhs_collection_name,
+                                     rhs_collection_name,
+                                     database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    lhs_collection = db[lhs_collection_name]
+    rhs_collection = db[rhs_collection_name]
+    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
+    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+    return two_plotly(lhs_histogram, rhs_histogram)
+
+
+@app.callback(
+    Output('plot-log-histogram-tab2', 'figure'),
+    [Input('histogram-dropdown-tab2', 'value')],
+    [State('database-name-dropdown-tab2', 'value'),
+     State('collection-dropdown-lhs-tab2', 'value'),
+     State('collection-dropdown-rhs-tab2', 'value'),
+     State('database-url-input-tab2', 'value')])
+def update_log_histogram_dropdown(histogram_name,
+                                  database_name,
+                                  lhs_collection_name,
+                                  rhs_collection_name,
+                                  database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    lhs_collection = db[lhs_collection_name]
+    rhs_collection = db[rhs_collection_name]
+    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
+    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+
+    layout = go.Layout(title = lhs_histogram['name'],
+                       yaxis = {'type': 'log',
+                                'autorange': True})
+
+    return two_plotly(lhs_histogram, rhs_histogram, layout = layout)
 

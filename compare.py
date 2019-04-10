@@ -26,10 +26,11 @@ def comparable(h1, h2):
             (len(h1['bin_values']) == len(h2['bin_values'])))
 
 def identical(h1, h2):
-    # take a swing at the softballs
-    if h1['bin_values'] == h2['bin_values']:
-        return True
+    return h1['bin_values'] == h2['bin_values']
 
+def different_statistics(h1, h2):
+    return 
+    
 def statistical_preconditions(h1, h2):
     n_common_nonzero_bins = len([True for u,v in zip(h1['bin_values'], h2['bin_values'])
                                  if u > 0 and v > 0])
