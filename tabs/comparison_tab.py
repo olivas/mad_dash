@@ -10,16 +10,20 @@ from dash.dependencies import State
 
 from db import create_simprod_db_client
 from application import app
+from compare import compare
 
 def extract_histograms(database_url, database_name, collection_name):
-
+    '''
+    Returns a dictionary of histograms where the key is the histogram name
+    and the value is the histogram document.
+    '''
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     collection = db[collection_name]
     histograms = collection.find({})
 
-    return [h for h in histograms
-            if h['name'] != 'filelist']
+    return {h['name']:h for h in histograms
+            if h['name'] != 'filelist'}
 
 def layout():
     return html.Div([
@@ -87,9 +91,22 @@ def compare_collections(database_url,
                         database_name,
                         lhs_collection,
                         rhs_collection):
+    print("compare_collections: Comparing...")
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     lhs_histograms = extract_histograms(database_url, database_name, lhs_collection)
     rhs_histograms = extract_histograms(database_url, database_name, rhs_collection)
+    print(lhs_histograms)
+    
+    results = dict()
+    for lhs_name, lhs_histogram in lhs_histograms.items():
+        if lhs_name not in rhs_histograms:
+            print("Histogram %s in LHS, but not RHS." % lhs_name)
+            continue
+        rhs_histogram = rhs_histograms[lhs_name]
+        results[lhs_name] = compare(lhs_histogram, rhs_histogram)
+
+    print(results)
+    print("compare_collections: Done.")
     return 'PASS'
 
