@@ -83,20 +83,24 @@ def set_rhs_collection_options(database_url, database_name):
             if name != 'system.indexes'] 
 
 @app.callback(Output('collection-comparison-result-tab2', 'children'),
-              [Input('database-url-input-tab2', 'value'),
-               Input('database-name-dropdown-tab2', 'value'),
-               Input('collection-dropdown-lhs-tab2', 'value'),
-               Input('collection-dropdown-rhs-tab2', 'value')])
-def compare_collections(database_url,
+              [Input('comparison-go-button-tab2', 'n_clicks')],
+              [State('database-url-input-tab2', 'value'),
+               State('database-name-dropdown-tab2', 'value'),
+               State('collection-dropdown-lhs-tab2', 'value'),
+               State('collection-dropdown-rhs-tab2', 'value')])
+def compare_collections(n_clicks,
+                        database_url,
                         database_name,
                         lhs_collection,
                         rhs_collection):
+    if not n_clicks:
+        return
+    
     print("compare_collections: Comparing...")
     client = create_simprod_db_client(database_url)
     db = client[database_name]
     lhs_histograms = extract_histograms(database_url, database_name, lhs_collection)
     rhs_histograms = extract_histograms(database_url, database_name, rhs_collection)
-    print(lhs_histograms)
     
     results = dict()
     for lhs_name, lhs_histogram in lhs_histograms.items():
@@ -106,7 +110,11 @@ def compare_collections(database_url,
         rhs_histogram = rhs_histograms[lhs_name]
         results[lhs_name] = compare(lhs_histogram, rhs_histogram)
 
-    print(results)
+    for name, result in results.items():
+        for r_name, result in result.items():
+            if result['pvalue'] < 1.0:
+                print("[%s] %s" % (name, result))
+
     print("compare_collections: Done.")
     return 'PASS'
 
