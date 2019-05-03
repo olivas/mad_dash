@@ -32,7 +32,7 @@ def layout():
         dcc.Input(id='database-url-input-tab2',
                   value='mongodb-simprod.icecube.wisc.edu',
                   readOnly=True,
-                  size=33,
+                  size='33',
                   type='text',
                   style={'text-align': 'center'}),
         dcc.Dropdown(id='database-name-dropdown-tab2',
