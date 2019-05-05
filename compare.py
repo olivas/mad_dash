@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 
+import numpy
 from scipy.stats import chisquare
 from scipy.stats import anderson_ksamp
 from scipy.stats.mstats import ks_twosamp
@@ -29,8 +30,8 @@ def identical(h1, h2):
     return h1['bin_values'] == h2['bin_values']
 
 def different_statistics(h1, h2):
-    return 
-    
+    return
+
 def statistical_preconditions(h1, h2):
     n_common_nonzero_bins = len([True for u,v in zip(h1['bin_values'], h2['bin_values'])
                                  if u > 0 and v > 0])
@@ -91,23 +92,38 @@ def compare(h1, h2):
     # I'd like to be able to gracefully recover from that.
 
     pool = Pool(processes=3)
-    
+
+    n1 = sum(h1['bin_values'])
+    n2 = sum(h2['bin_values'])
+    if n1 != n2:
+        # scale the larger histogram down
+        N = min(n1, n2)
+        if N > 0:
+            bv1 = numpy.array(h1['bin_values'])/N
+            bv2 = numpy.array(h2['bin_values'])/N
+        else:
+            bv1 = numpy.array(h1['bin_values'])
+            bv2 = numpy.array(h2['bin_values'])
     try:
-        res = pool.apply_async(chisquare, (h1['bin_values'], h2['bin_values']))
+        print(bv1)
+        print(bv2)
+        print(chisquare(bv1, bv2))
+        res = pool.apply_async(chisquare, (bv1, bv2))
         chi2_result = res.get(timeout=1)
+        print(chi2_result)
         result['chisq'] = {'T': chi2_result[0], 'pvalue': chi2_result[1]}
     except Exception as e:
         result['chisq'] = {'pvalue': 0, "Exception": str(e)}
 
     try:
-        res = pool.apply_async(ks_twosamp, (h1['bin_values'], h2['bin_values']))
+        res = pool.apply_async(ks_twosamp, (bv1, bv2))
         ks_result = res.get(timeout=10)
         result['KS'] = {'T': ks_result[0], 'pvalue': ks_result[1]}
     except Exception as e:
         result['KS'] = {'pvalue': 0, "Exception": str(e)}
 
     try:
-        res = pool.apply_async(anderson_ksamp, (h1['bin_values'], h2['bin_values']))
+        res = pool.apply_async(anderson_ksamp, (bv1, bv2))
         ad_result = res.get(timeout=10)
         result['AD'] = {'T': ad_result[0], 'pvalue': ad_result[2]}
     except Exception as e:
@@ -115,5 +131,5 @@ def compare(h1, h2):
 
     pool.close()
     pool.join()
-        
+
     return result
