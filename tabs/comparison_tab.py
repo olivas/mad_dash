@@ -180,7 +180,6 @@ def compare_collections(n_clicks,
         notes = 'N/A'
 
         if 'chisq' not in result and 'KS' not in result and 'AD' not in result:
-            print(result)
             if len(result) == 1:
                 notes = list(result.keys())[0]
 

@@ -27,6 +27,8 @@ def comparable(h1, h2):
             (len(h1['bin_values']) == len(h2['bin_values'])))
 
 def identical(h1, h2):
+    print(h1['bin_values'])
+    print(h2['bin_values'])
     return h1['bin_values'] == h2['bin_values']
 
 def different_statistics(h1, h2):
@@ -95,19 +97,15 @@ def compare(h1, h2):
 
     n1 = sum(h1['bin_values'])
     n2 = sum(h2['bin_values'])
+    bv1 = numpy.array(h1['bin_values'])
+    bv2 = numpy.array(h2['bin_values'])
     if n1 != n2:
         # scale the larger histogram down
         N = min(n1, n2)
         if N > 0:
             bv1 = numpy.array(h1['bin_values'])/N
             bv2 = numpy.array(h2['bin_values'])/N
-        else:
-            bv1 = numpy.array(h1['bin_values'])
-            bv2 = numpy.array(h2['bin_values'])
     try:
-        print(bv1)
-        print(bv2)
-        print(chisquare(bv1, bv2))
         res = pool.apply_async(chisquare, (bv1, bv2))
         chi2_result = res.get(timeout=1)
         print(chi2_result)
@@ -123,9 +121,11 @@ def compare(h1, h2):
         result['KS'] = {'pvalue': 0, "Exception": str(e)}
 
     try:
-        res = pool.apply_async(anderson_ksamp, (bv1, bv2))
+        res = pool.apply_async(anderson_ksamp, ([bv1, bv2]))
         ad_result = res.get(timeout=10)
+        print("AD Critical Values = %s" % str(ad_result[1]))
         result['AD'] = {'T': ad_result[0], 'pvalue': ad_result[2]}
+        sys.exit()
     except Exception as e:
         result['AD'] = {'pvalue': 0, "Exception": str(e)}
 
