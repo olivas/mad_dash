@@ -1,5 +1,6 @@
 import os
 import logging
+import urllib
 from os import environ
 from os.path import join
 from os.path import exists
@@ -17,7 +18,9 @@ def create_simprod_db_client(database_url = 'mongodb-simprod.icecube.wisc.edu',
         logging.critical("Password file '%s' not found." % password_path)
         
     f = open(password_path)
-    uri = "mongodb://%s:%s@%s" % (dbuser, f.readline().strip(), database_url)
+    uri = "mongodb://%s:%s@%s" % (dbuser,
+                                  urllib.parse.quote_plus(f.readline().strip()),
+                                  database_url)
     f.close()
     
     client = MongoClient(uri)
