@@ -6,4 +6,5 @@ Setting up a development environment (prefer python virtualenv)
 python3 -m venv mad_dash_env
 source mad_dash_env/bin/activate
 pip install -r requirements.txt
-python mad_dash_app.py```
+python mad_dash_app.py
+```
