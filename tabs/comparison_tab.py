@@ -12,7 +12,7 @@ from copy import copy
 
 from db import create_simprod_db_client
 from application import app
-from compare import compare
+from statistics.compare import compare
 from histogram_converter import two_plotly
 from histogram_converter import to_plotly
 import plotly.graph_objs as go
