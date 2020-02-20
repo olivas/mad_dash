@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-import datetime
-import random
-
-import plotly.graph_objs as go
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input
-from dash.dependencies import Output
-from dash.dependencies import State
-
-from db import create_simprod_db_client
+import plotly.graph_objs as go
 from application import app
+from dash.dependencies import Input, Output, State
+from db import create_simprod_db_client
 from histogram_converter import to_plotly
+
 
 def layout():
 
@@ -28,23 +23,54 @@ def layout():
         html.Div([html.H3('Collections'),
                   dcc.Dropdown(id='collection-dropdown-tab1',
                                value='icecube:test-data:trunk:production-histograms')
-        ]),
-        html.Div([html.H3('Histogram'), 
-                  html.H6(id='filelist-message-tab1'),                                            
-                  html.H6(id='n-histogram-message-tab1'),                                            
-                  html.H6(id='n-empty-histograms-message-tab1'),                                            
+                  ]),
+        html.Div([html.H3('Histogram'),
+                  html.H6(id='filelist-message-tab1'),
+                  html.H6(id='n-histogram-message-tab1'),
+                  html.H6(id='n-empty-histograms-message-tab1'),
                   dcc.Dropdown(id='histogram-dropdown-tab1',
                                value='PrimaryEnergy'),
                   html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab1'),
-                                     className = 'two columns',
-                                     style = {'width': '45%'}),
+                                     className='two columns',
+                                     style={'width': '45%'}),
                             html.Div(dcc.Graph(id='plot-log-histogram-tab1'),
-                                     className = 'two columns',
-                                     style = {'width': '45%'})],
-                           className = 'row')
-        ]),
-        html.Hr()],
-                    style = {'textAlign': 'center'})
+                                     className='two columns',
+                                     style={'width': '45%'})],
+                           className='row')
+                  ]),
+        html.Hr(),
+        html.Div([html.Div([dcc.Graph(id='one-one')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='one-two')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='one-three')],
+                           className='three columns',
+                           style={"width": "30%"})],
+                 className='row'),
+        html.Div([html.Div([dcc.Graph(id='two-one')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='two-two')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='two-three')],
+                           className='three columns',
+                           style={"width": "30%"})],
+                 className='row'),
+        html.Div([html.Div([dcc.Graph(id='three-one')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='three-two')],
+                           className='three columns',
+                           style={"width": "30%"}),
+                  html.Div([dcc.Graph(id='three-three')],
+                           className='three columns',
+                           style={"width": "30%"})],
+                 className='row')],
+                    style={'textAlign': 'center'})
+
 
 @app.callback(Output('callback-trigger-test', 'children'),
               [Input('database-url-input-tab1', 'value')])
@@ -170,3 +196,112 @@ def update_log_histogram_dropdown(histogram_name, database_name, collection_name
                                 'autorange': True})
     return to_plotly(histogram, layout = layout)
 
+# NINE PLOTS #
+
+@app.callback(
+    Output('one-one', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'PrimaryEnergy'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('one-two', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'PrimaryZenith'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('one-three', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'PrimaryCosZenith'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('two-one', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'CascadeEnergy'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('two-two', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'PulseTime'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('two-three', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'SecondaryMultiplicity'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('three-one', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'InIceDOMOccupancy'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('three-two', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'InIceDOMLaunchTime'})
+    return to_plotly(histogram)
+
+@app.callback(
+    Output('three-three', 'figure'),
+    [Input('database-name-dropdown-tab1', 'value'),
+     Input('collection-dropdown-tab1', 'value')],
+    [State('database-url-input-tab1', 'value')])    
+def update_default_histograms(database_name, collection_name, database_url):
+    client = create_simprod_db_client(database_url)
+    db = client[database_name]
+    collection = db[collection_name]
+    histogram = collection.find_one({'name': 'LogQtot'})
+    return to_plotly(histogram)
