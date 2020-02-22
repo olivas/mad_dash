@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import dash_core_components as dcc
 import dash_html_components as html
+import db
 import plotly.graph_objs as go
 from application import app
 from dash.dependencies import Input, Output, State
-from db import create_simprod_db_client
 from histogram_converter import to_plotly
 
 
@@ -69,7 +69,7 @@ def layout():
                            className='three columns',
                            style={"width": "30%"})],
                  className='row')],
-                    style={'textAlign': 'center'})
+        style={'textAlign': 'center'})
 
 
 @app.callback(Output('callback-trigger-test', 'children'),
@@ -77,95 +77,76 @@ def layout():
 def callback_trigger_test(value):
     return value
 
+
 @app.callback(Output('database-name-dropdown-tab1', 'options'),
               [Input('database-url-input-tab1', 'value')])
 def get_database_name_options(database_url):
-    client = create_simprod_db_client(database_url)
-    db_names = [n for n in client.database_names()
-                if n != 'system.indexes']
-    db_names.remove('admin')
-    db_names.remove('local')
-    if 'simprod_filecatalog' in db_names:
-        db_names.remove('simprod_filecatalog')
+    database_names = db.get_database_names(database_url)
+    return [{'value': n, 'label': n} for n in database_names]
 
-    return [{'value': n, 'label': n} for n in db_names]
 
 @app.callback(Output('collection-dropdown-tab1', 'options'),
               [Input('database-name-dropdown-tab1', 'value')],
               [State('database-url-input-tab1', 'value')])
 def update_collection_options(database_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]    
-    return [{'label': name, 'value': name} 
-            for name in db.collection_names()
-            if name != 'system.indexes'] 
+    collection_names = db.get_collection_names(database_name, database_url)
+    return [{'label': name, 'value': name} for name in collection_names]
+
 
 @app.callback(Output('filelist-message-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')],
-               [State('database-url-input-tab1', 'value')])
+              [State('database-url-input-tab1', 'value')])
 def update_histogram_filelist_message(database_name, collection_name, database_url):
     if not collection_name:
         return
-    
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    filelist = collection.find_one({'name' : 'filelist'})['files']
-    
-    filelist_message = "Histograms from '%s' were generated from %d %s" %\
-                       (collection_name,
-                        len(filelist),
-                        "I3File" if len(filelist) == 1 else "I3Files")
+
+    filelist = db.get_filelist(collection_name, database_name, database_url)
+
+    i3_files_str = "I3File" if len(filelist) == 1 else "I3Files"
+    filelist_message = f"Histograms from '{collection_name}' were generated from {len(filelist)} {i3_files_str}"
 
     return filelist_message
+
 
 @app.callback(Output('n-histogram-message-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')],
-               [State('database-url-input-tab1', 'value')])
+              [State('database-url-input-tab1', 'value')])
 def update_n_histograms_message(database_name, collection_name, database_url):
     if not collection_name:
         return
-    
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    cursor = collection.find()
-    histogram_names = [d['name'] for d in cursor]
-    return 'There are %d histograms in this collection' % len(histogram_names)
+
+    histogram_names = db.get_histogram_names(collection_name, database_name, database_url)
+    return f"There are {len(histogram_names)} histograms in this collection"
+
 
 @app.callback(Output('n-empty-histograms-message-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')],
-               [State('database-url-input-tab1', 'value')])
+              [State('database-url-input-tab1', 'value')])
 def update_n_empty_histograms_message(database_name, collection_name, database_url):
     if not collection_name:
         return
-    
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    cursor = collection.find()
-    histograms = [h for h in cursor if h['name'] != 'filelist']                  
+
+    histograms = db.get_histograms(collection_name, database_name, database_url)
     non_empty_histograms = [h for h in histograms if any(h['bin_values'])]
-    n_empty = len(histograms) - len(non_empty_histograms)    
-    return 'There are %d empty histograms' % n_empty
+    n_empty = len(histograms) - len(non_empty_histograms)
+
+    return f'There are {n_empty} empty histograms'
+
 
 @app.callback(Output('histogram-dropdown-tab1', 'options'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')],
-               [State('database-url-input-tab1', 'value')])
+              [State('database-url-input-tab1', 'value')])
 def update_histogram_dropdown_options(database_name, collection_name, database_url):
     if not collection_name:
         return
-    
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    cursor = collection.find()
-    histogram_names = [d['name'] for d in cursor] 
+
+    histogram_names = db.get_histogram_names(collection_name, database_name, database_url)
     return [{'label': name, 'value': name} for name in histogram_names]
+
 
 @app.callback(
     Output('plot-linear-histogram-tab1', 'figure'),
@@ -174,11 +155,9 @@ def update_histogram_dropdown_options(database_name, collection_name, database_u
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
 def update_linear_histogram_dropdown(histogram_name, database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': histogram_name})
+    histogram = db.get_histogram(histogram_name, collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('plot-log-histogram-tab1', 'figure'),
@@ -187,121 +166,101 @@ def update_linear_histogram_dropdown(histogram_name, database_name, collection_n
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
 def update_log_histogram_dropdown(histogram_name, database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': histogram_name})
-    layout = go.Layout(title = histogram['name'],
-                       yaxis = {'type': 'log',
-                                'autorange': True})
-    return to_plotly(histogram, layout = layout)
+    histogram = db.get_histogram(histogram_name, collection_name, database_name, database_url)
+    layout = go.Layout(title=histogram['name'],
+                       yaxis={'type': 'log',
+                              'autorange': True})
+    return to_plotly(histogram, layout=layout)
+
 
 # NINE PLOTS #
+
 
 @app.callback(
     Output('one-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'PrimaryEnergy'})
+    histogram = db.get_histogram('PrimaryEnergy', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('one-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'PrimaryZenith'})
+    histogram = db.get_histogram('PrimaryZenith', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('one-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'PrimaryCosZenith'})
+    histogram = db.get_histogram('PrimaryCosZenith', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('two-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'CascadeEnergy'})
+    histogram = db.get_histogram('CascadeEnergy', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('two-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'PulseTime'})
+    histogram = db.get_histogram('PulseTime', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('two-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'SecondaryMultiplicity'})
+    histogram = db.get_histogram('SecondaryMultiplicity', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('three-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'InIceDOMOccupancy'})
+    histogram = db.get_histogram('InIceDOMOccupancy', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('three-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'InIceDOMLaunchTime'})
+    histogram = db.get_histogram('InIceDOMLaunchTime', collection_name, database_name, database_url)
     return to_plotly(histogram)
+
 
 @app.callback(
     Output('three-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
-    [State('database-url-input-tab1', 'value')])    
+    [State('database-url-input-tab1', 'value')])
 def update_default_histograms(database_name, collection_name, database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histogram = collection.find_one({'name': 'LogQtot'})
+    histogram = db.get_histogram('LogQtot', collection_name, database_name, database_url)
     return to_plotly(histogram)
