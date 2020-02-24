@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
-import datetime
-import random
+from copy import copy
+from statistics.compare import compare
 
-import numpy
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input
-from dash.dependencies import Output
-from dash.dependencies import State
-from copy import copy
-
-from db import create_simprod_db_client
-from application import app
-from statistics.compare import compare
-from histogram_converter import two_plotly
-from histogram_converter import to_plotly
+import db
 import plotly.graph_objs as go
+from application import app
+from dash.dependencies import Input, Output, State
+from histogram_converter import to_plotly, two_plotly
 
 
 def cdf(histogram):
@@ -26,18 +19,14 @@ def cdf(histogram):
         histogram['bin_values'][idx] = v
     return histogram
 
+
 def extract_histograms(database_url, database_name, collection_name):
     '''
     Returns a dictionary of histograms where the key is the histogram name
     and the value is the histogram document.
     '''
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    collection = db[collection_name]
-    histograms = collection.find({})
-
-    return {h['name']:h for h in histograms
-            if h['name'] != 'filelist'}
+    histograms = db.get_histograms(collection_name, database_name, database_url)
+    return {h['name']: h for h in histograms}
 
 
 def scale_to_match(h1, h2):
@@ -49,21 +38,22 @@ def scale_to_match(h1, h2):
         return
 
     print('before sum1 = %d' % sum(h1['bin_values']))
-    print('before sum2 = %d'% sum(h2['bin_values']))
+    print('before sum2 = %d' % sum(h2['bin_values']))
 
     if n1 > n2:
-        N = n1/n2
+        N = n1 / n2
         print('N = %d' % N)
         for idx in range(len(h1['bin_values'])):
             h1['bin_values'][idx] /= N
     else:
-        N = n2/n1
+        N = n2 / n1
         print('N = %d' % N)
         for idx in range(len(h2['bin_values'])):
             h2['bin_values'][idx] /= N
 
     print('after sum1 = %d' % sum(h1['bin_values']))
-    print('after sum2 = %d'% sum(h2['bin_values']))
+    print('after sum2 = %d' % sum(h2['bin_values']))
+
 
 def layout():
     return html.Div([
@@ -85,19 +75,19 @@ def layout():
         html.Hr(),
         dcc.Dropdown(id='histogram-dropdown-tab2'),
         html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab2'),
-                           className = 'two columns',
-                           style = {'width': '45%'}),
+                           className='two columns',
+                           style={'width': '45%'}),
                   html.Div(dcc.Graph(id='plot-log-histogram-tab2'),
-                           className = 'two columns',
-                           style = {'width': '45%'})],
-                 className = 'row'),
+                           className='two columns',
+                           style={'width': '45%'})],
+                 className='row'),
         html.Div([html.Div(dcc.Graph(id='plot-histogram-ratio-tab2'),
-                           className = 'two columns',
-                           style = {'width': '45%'}),
+                           className='two columns',
+                           style={'width': '45%'}),
                   html.Div(dcc.Graph(id='plot-histogram-cdf-tab2'),
-                           className = 'two columns',
-                           style = {'width': '45%'})],
-                 className = 'row'),
+                           className='two columns',
+                           style={'width': '45%'})],
+                 className='row'),
         html.Hr(),
         html.Table(id='collection-comparison-result-tab2'),
     ])
@@ -106,37 +96,29 @@ def layout():
 @app.callback(Output('database-name-dropdown-tab2', 'options'),
               [Input('database-url-input-tab2', 'value')])
 def get_database_name_options(database_url):
-    client = create_simprod_db_client(database_url)
-    db_names = [n for n in client.database_names()
-                if n != 'system.indexes']
-    db_names.remove('admin')
-    db_names.remove('local')
-    if 'simprod_filecatalog' in db_names:
-        db_names.remove('simprod_filecatalog')
+    database_names = db.get_database_names(database_url)
+    return [{'value': n, 'label': n} for n in database_names]
 
-    return [{'value': n, 'label': n} for n in db_names]
 
 @app.callback(Output('collection-dropdown-lhs-tab2', 'options'),
               [Input('database-url-input-tab2', 'value'),
                Input('database-name-dropdown-tab2', 'value')])
 def set_lhs_collection_options(database_url, database_name):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    options = [{'label': name, 'value': name}
-            for name in db.collection_names()
-            if name != 'system.indexes']
+    collection_names = db.get_collection_names(database_name, database_url)
+    options = [{'label': name, 'value': name} for name in collection_names]
     print(options)
     return options
+
 
 @app.callback(Output('collection-dropdown-rhs-tab2', 'options'),
               [Input('database-url-input-tab2', 'value'),
                Input('database-name-dropdown-tab2', 'value')])
 def set_rhs_collection_options(database_url, database_name):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    return [{'label': name, 'value': name}
-            for name in db.collection_names()
-            if name != 'system.indexes']
+    collection_names = db.get_collection_names(database_name, database_url)
+    options = [{'label': name, 'value': name} for name in collection_names]
+    print(options)
+    return options
+
 
 @app.callback(Output('collection-comparison-result-tab2', 'children'),
               [Input('comparison-go-button-tab2', 'n_clicks')],
@@ -144,23 +126,13 @@ def set_rhs_collection_options(database_url, database_name):
                State('database-name-dropdown-tab2', 'value'),
                State('collection-dropdown-lhs-tab2', 'value'),
                State('collection-dropdown-rhs-tab2', 'value')])
-def compare_collections(n_clicks,
-                        database_url,
-                        database_name,
-                        lhs_collection,
-                        rhs_collection):
+def compare_collections(n_clicks, database_url, database_name, lhs_collection, rhs_collection):
     if not n_clicks:
         return
 
     print("compare_collections: Comparing...")
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_histograms = extract_histograms(database_url,
-                                        database_name,
-                                        lhs_collection)
-    rhs_histograms = extract_histograms(database_url,
-                                        database_name,
-                                        rhs_collection)
+    lhs_histograms = extract_histograms(database_url, database_name, lhs_collection)
+    rhs_histograms = extract_histograms(database_url, database_name, rhs_collection)
 
     results = dict()
     for lhs_name, lhs_histogram in lhs_histograms.items():
@@ -190,30 +162,22 @@ def compare_collections(n_clicks,
     print("compare_collections: Done.")
     return table_elements
 
+
 @app.callback(Output('histogram-dropdown-tab2', 'options'),
               [Input('comparison-go-button-tab2', 'n_clicks')],
               [State('database-name-dropdown-tab2', 'value'),
                State('collection-dropdown-lhs-tab2', 'value'),
                State('collection-dropdown-rhs-tab2', 'value'),
                State('database-url-input-tab2', 'value')])
-def update_histogram_dropdown_options(n_clicks,
-                                      database_name,
-                                      lhs_collection_name,
-                                      rhs_collection_name,
-                                      database_url):
+def update_histogram_dropdown_options(n_clicks, database_name, lhs_collection_name, rhs_collection_name, database_url):
     if not n_clicks:
         return
 
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_collection = db[lhs_collection_name]
-    rhs_collection = db[rhs_collection_name]
-    rhs_cursor = rhs_collection.find()
-    lhs_cursor = lhs_collection.find()
-    rhs_histogram_names = [d['name'] for d in rhs_cursor]
-    lhs_histogram_names = [d['name'] for d in lhs_cursor]
-    histogram_names = [n for n in lhs_histogram_names
-                       if n in rhs_histogram_names]
+    rhs_histogram_names = db.get_histogram_names(lhs_collection_name, database_name, database_url)
+    lhs_histogram_names = db.get_histogram_names(rhs_collection_name, database_name, database_url)
+
+    histogram_names = [n for n in lhs_histogram_names if n in rhs_histogram_names]
+
     return [{'label': name, 'value': name} for name in histogram_names]
 
 
@@ -224,18 +188,12 @@ def update_histogram_dropdown_options(n_clicks,
      State('collection-dropdown-lhs-tab2', 'value'),
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
-def update_linear_histogram_dropdown(histogram_name,
-                                     database_name,
-                                     lhs_collection_name,
-                                     rhs_collection_name,
-                                     database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_collection = db[lhs_collection_name]
-    rhs_collection = db[rhs_collection_name]
-    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
-    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+def update_linear_histogram_dropdown(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
+    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
+
     return two_plotly(lhs_histogram, rhs_histogram)
+
 
 @app.callback(
     Output('plot-log-histogram-tab2', 'figure'),
@@ -244,23 +202,15 @@ def update_linear_histogram_dropdown(histogram_name,
      State('collection-dropdown-lhs-tab2', 'value'),
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
-def update_log_histogram_dropdown(histogram_name,
-                                  database_name,
-                                  lhs_collection_name,
-                                  rhs_collection_name,
-                                  database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_collection = db[lhs_collection_name]
-    rhs_collection = db[rhs_collection_name]
-    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
-    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+def update_log_histogram_dropdown(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
+    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
 
-    layout = go.Layout(title = lhs_histogram['name'],
-                       yaxis = {'type': 'log',
-                                'autorange': True})
+    layout = go.Layout(title=lhs_histogram['name'],
+                       yaxis={'type': 'log', 'autorange': True})
 
-    return two_plotly(lhs_histogram, rhs_histogram, layout = layout)
+    return two_plotly(lhs_histogram, rhs_histogram, layout=layout)
+
 
 @app.callback(
     Output('plot-histogram-ratio-tab2', 'figure'),
@@ -269,17 +219,9 @@ def update_log_histogram_dropdown(histogram_name,
      State('collection-dropdown-lhs-tab2', 'value'),
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
-def update_ratio_histogram(histogram_name,
-                         database_name,
-                         lhs_collection_name,
-                         rhs_collection_name,
-                         database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_collection = db[lhs_collection_name]
-    rhs_collection = db[rhs_collection_name]
-    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
-    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+def update_ratio_histogram(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
+    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
 
     scale_to_match(lhs_histogram, rhs_histogram)
 
@@ -287,8 +229,9 @@ def update_ratio_histogram(histogram_name,
     for idx, bv in enumerate(rhs_histogram['bin_values']):
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
-    layout = go.Layout(title = "Scaled to Match Ratio")
+    layout = go.Layout(title="Scaled to Match Ratio")
     return to_plotly(ratio_histogram, layout=layout)
+
 
 @app.callback(
     Output('plot-histogram-cdf-tab2', 'figure'),
@@ -297,17 +240,9 @@ def update_ratio_histogram(histogram_name,
      State('collection-dropdown-lhs-tab2', 'value'),
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
-def update_cdf_histogram(histogram_name,
-                         database_name,
-                         lhs_collection_name,
-                         rhs_collection_name,
-                         database_url):
-    client = create_simprod_db_client(database_url)
-    db = client[database_name]
-    lhs_collection = db[lhs_collection_name]
-    rhs_collection = db[rhs_collection_name]
-    lhs_histogram = lhs_collection.find_one({'name': histogram_name})
-    rhs_histogram = rhs_collection.find_one({'name': histogram_name})
+def update_cdf_histogram(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
+    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
 
     scale_to_match(lhs_histogram, rhs_histogram)
 
@@ -315,5 +250,5 @@ def update_cdf_histogram(histogram_name,
     for idx, bv in enumerate(cdf(rhs_histogram)['bin_values']):
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
-    layout = go.Layout(title = "Scaled to Match CDF Ratio")
-    return to_plotly(ratio_histogram, layout = layout)
+    layout = go.Layout(title="Scaled to Match CDF Ratio")
+    return to_plotly(ratio_histogram, layout=layout)
