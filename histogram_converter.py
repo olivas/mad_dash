@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-
+"""Tools for converting I3 histograms to plotly Bar graphs"""
 import plotly.graph_objs as go
 
-def to_plotly(histogram, layout = None):
-    '''
+
+def n_histograms_to_plotly(histograms, layout=None):
+    """
+    Return a plotly Bar graph object with a n overlapped histograms.
+
     This function converts a histogram assuming the following
     dictionary structure
     "name" : String that's the name of the histograms
@@ -13,55 +16,22 @@ def to_plotly(histogram, layout = None):
     "underflow" : Number of counters < xmin
     "nan_count" : Number of NaN entries
     "bin_values" : List of bin values (i.e. histogram contents)
+    """
+    if not histograms or not isinstance(histograms, list):
+        raise TypeError("`histogram` argument needs to be a list of n histograms.")
 
-    This function returns a plotly Bar graph object.
-    '''
-    bin_width = (histogram['xmax'] - histogram['xmin'])/float(len(histogram['bin_values']))
-    x_values = [histogram['xmin'] + i*bin_width for i in range(len(histogram['bin_values']))]
-    text = "nan(%d) under(%d) over(%d)" % \
-           (histogram['nan_count'],histogram['underflow'],histogram['overflow'])
-
+    first = histograms[0]
     if not layout:
-        layout = go.Layout(title = histogram['name'])
-    
-    return go.Figure(data = [go.Bar( x = x_values,
-                                     y = histogram['bin_values'],
-                                     text = text,
-                                     name = histogram['name'])],
-                     layout = layout
-    )
+        layout = go.Layout(title=first['name'])
+    bin_width = (first['xmax'] - first['xmin']) / float(len(first['bin_values']))
+    x_values = [first['xmin'] + i * bin_width for i in range(len(first['bin_values']))]
+    text = f"nan({first['nan_count']}) under({first['underflow']}) over({first['overflow']})"
 
+    data = []
+    for histo in histograms:
+        data.append(go.Bar(x=x_values,
+                           y=histo['bin_values'],
+                           text=text,
+                           name=histo['name']))
 
-def two_plotly(h1, h2, layout = None):
-    '''
-    This function converts a histogram assuming the following
-    dictionary structure
-    "name" : String that's the name of the histograms
-    "xmin" : Minimum x-value.
-    "xmax" : Maxium x-value.
-    "overflow" : Number of counts >= xmax
-    "underflow" : Number of counters < xmin
-    "nan_count" : Number of NaN entries
-    "bin_values" : List of bin values (i.e. histogram contents)
-
-    This function returns a plotly Bar graph object.
-    '''
-    bin_width = (h1['xmax'] - h1['xmin'])/float(len(h1['bin_values']))
-    x_values = [h1['xmin'] + i*bin_width for i in range(len(h1['bin_values']))]
-    text = "nan(%d) under(%d) over(%d)" % \
-           (h1['nan_count'],h1['underflow'],h1['overflow'])
-
-    if not layout:
-        layout = go.Layout(title = h1['name'])
-    
-    return go.Figure(data = [go.Bar( x = x_values,
-                                     y = h1['bin_values'],
-                                     text = text,
-                                     name = h1['name']),
-                             go.Bar( x = x_values,
-                                     y = h2['bin_values'],
-                                     text = text,
-                                     name = h2['name'])],
-                     layout = layout
-    )
-
+    return go.Figure(data=data, layout=layout)

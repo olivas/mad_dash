@@ -5,7 +5,7 @@ import db
 import plotly.graph_objs as go
 from application import app
 from dash.dependencies import Input, Output, State
-from histogram_converter import to_plotly
+from histogram_converter import n_histograms_to_plotly
 
 
 def layout():
@@ -156,7 +156,7 @@ def update_histogram_dropdown_options(database_name, collection_name, database_u
     [State('database-url-input-tab1', 'value')])
 def update_linear_histogram_dropdown(histogram_name, database_name, collection_name, database_url):
     histogram = db.get_histogram(histogram_name, collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -170,7 +170,7 @@ def update_log_histogram_dropdown(histogram_name, database_name, collection_name
     layout = go.Layout(title=histogram['name'],
                        yaxis={'type': 'log',
                               'autorange': True})
-    return to_plotly(histogram, layout=layout)
+    return n_histograms_to_plotly([histogram], layout=layout)
 
 
 # NINE PLOTS #
@@ -181,9 +181,9 @@ def update_log_histogram_dropdown(histogram_name, database_name, collection_name
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_one_one(database_name, collection_name, database_url):
     histogram = db.get_histogram('PrimaryEnergy', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -191,9 +191,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_one_two(database_name, collection_name, database_url):
     histogram = db.get_histogram('PrimaryZenith', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -201,9 +201,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_one_three(database_name, collection_name, database_url):
     histogram = db.get_histogram('PrimaryCosZenith', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -211,9 +211,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_two_one(database_name, collection_name, database_url):
     histogram = db.get_histogram('CascadeEnergy', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -221,9 +221,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_two_two(database_name, collection_name, database_url):
     histogram = db.get_histogram('PulseTime', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -231,9 +231,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_two_three(database_name, collection_name, database_url):
     histogram = db.get_histogram('SecondaryMultiplicity', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -241,9 +241,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_three_one(database_name, collection_name, database_url):
     histogram = db.get_histogram('InIceDOMOccupancy', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -251,9 +251,9 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_three_two(database_name, collection_name, database_url):
     histogram = db.get_histogram('InIceDOMLaunchTime', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])
 
 
 @app.callback(
@@ -261,6 +261,6 @@ def update_default_histograms(database_name, collection_name, database_url):
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
-def update_default_histograms(database_name, collection_name, database_url):
+def update_default_histograms_three_three(database_name, collection_name, database_url):
     histogram = db.get_histogram('LogQtot', collection_name, database_name, database_url)
-    return to_plotly(histogram)
+    return n_histograms_to_plotly([histogram])

@@ -9,6 +9,7 @@ from serve_layout import serve_layout
 app.layout = serve_layout
 server = app.server
 
+
 @app.callback(Output('tab-content', 'children'),
               [Input('mad-dash-tabs', 'value')])
 def render_content(tab):

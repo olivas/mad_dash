@@ -8,7 +8,7 @@ import db
 import plotly.graph_objs as go
 from application import app
 from dash.dependencies import Input, Output, State
-from histogram_converter import to_plotly, two_plotly
+from histogram_converter import n_histograms_to_plotly
 
 
 def cdf(histogram):
@@ -192,7 +192,7 @@ def update_linear_histogram_dropdown(histogram_name, database_name, lhs_collecti
     lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
     rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
 
-    return two_plotly(lhs_histogram, rhs_histogram)
+    return n_histograms_to_plotly([lhs_histogram, rhs_histogram])
 
 
 @app.callback(
@@ -209,7 +209,7 @@ def update_log_histogram_dropdown(histogram_name, database_name, lhs_collection_
     layout = go.Layout(title=lhs_histogram['name'],
                        yaxis={'type': 'log', 'autorange': True})
 
-    return two_plotly(lhs_histogram, rhs_histogram, layout=layout)
+    return n_histograms_to_plotly([lhs_histogram, rhs_histogram], layout=layout)
 
 
 @app.callback(
@@ -230,7 +230,7 @@ def update_ratio_histogram(histogram_name, database_name, lhs_collection_name, r
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
     layout = go.Layout(title="Scaled to Match Ratio")
-    return to_plotly(ratio_histogram, layout=layout)
+    return n_histograms_to_plotly([ratio_histogram], layout=layout)
 
 
 @app.callback(
@@ -251,4 +251,4 @@ def update_cdf_histogram(histogram_name, database_name, lhs_collection_name, rhs
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
     layout = go.Layout(title="Scaled to Match CDF Ratio")
-    return to_plotly(ratio_histogram, layout=layout)
+    return n_histograms_to_plotly([ratio_histogram], layout=layout)
