@@ -54,7 +54,7 @@ def get_collection(collection_name, database_name, database_url):
 
 
 def get_histogram_names(collection_name, database_name, database_url):
-    """Return the histograms names in the collection"""
+    """Return the histograms names in the collection."""
     collection = get_collection(collection_name, database_name, database_url)
     cursor = collection.find()
     histogram_names = [d['name'] for d in cursor if d['name'] != 'filelist']

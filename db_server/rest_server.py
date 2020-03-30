@@ -12,8 +12,8 @@ from rest_tools.server import RestHandler, RestHandlerSetup, RestServer, from_en
 AUTH_PREFIX = "maddash"
 
 EXPECTED_CONFIG = {
-    'MAD_DASH_AUTH_ALGORITHM': 'RS256',
-    'MAD_DASH_AUTH_ISSUER': 'maddash',
+    'MAD_DASH_AUTH_ALGORITHM': 'HS512',  # 'RS256',
+    'MAD_DASH_AUTH_ISSUER': 'http://localhost:8888',  # 'maddash',
     'MAD_DASH_AUTH_SECRET': 'secret',
     'MAD_DASH_MONGODB_AUTH_USER': '',  # None means required to specify
     'MAD_DASH_MONGODB_AUTH_PASS': '',  # empty means no authentication required
@@ -64,13 +64,13 @@ class MainHandler(BaseMadDashHandler):
 
 
 class DatabasesHandler(BaseMadDashHandler):
-    """ """
+    """Handle querying list of databases in mongodb client."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self):
         """Handle GET."""
-        excludes = ('system.indexes', 'admin', 'local', 'simprod_filecatalog')
-        database_names = [n for n in self.db_client.database_names() if n not in excludes]
+        excludes = ['system.indexes', 'admin', 'local', 'simprod_filecatalog']
+        database_names = [n for n in await self.db_client.list_database_names() if n not in excludes]
 
         self.write({'databases': database_names})
 
@@ -78,15 +78,16 @@ class DatabasesHandler(BaseMadDashHandler):
 
 
 class CollectionsHandler(BaseMadDashHandler):
-    """ """
+    """Handle querying list of collections from specified database."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name):
         """Handle GET."""
         database = super().get_database(database_name)
-        collection_names = [n for n in database.collection_names() if n != 'system.indexes']
+        collection_names = [n for n in await database.list_collection_names() if n != 'system.indexes']
 
-        self.write({'collections': collection_names})
+        self.write({'database': database_name,
+                    'collections': collection_names})
 
 # -----------------------------------------------------------------------------
 
@@ -94,13 +95,15 @@ class CollectionsHandler(BaseMadDashHandler):
 class HistogramsHandler(BaseMadDashHandler):
     """ """
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name, collection_name):
         """Handle GET."""
         collection = super().get_collection(database_name, collection_name)
         histogram_names = [d['name'] for d in collection.find() if d['name'] != 'filelist']
 
-        self.write({'histograms': histogram_names})
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histograms': histogram_names})
 
 # -----------------------------------------------------------------------------
 
@@ -108,7 +111,7 @@ class HistogramsHandler(BaseMadDashHandler):
 class HistogramObjectsHandler(BaseMadDashHandler):
     """ """
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name, collection_name):
         """Handle GET."""
         collection = super().get_collection(database_name, collection_name)
@@ -116,7 +119,7 @@ class HistogramObjectsHandler(BaseMadDashHandler):
 
         self.write({'histograms': histograms})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['iceprod'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin'])
     async def post(self, database_name, collection_name):
         """Handle POST."""
         req = json_decode(self.request.body)
@@ -129,7 +132,7 @@ class HistogramObjectsHandler(BaseMadDashHandler):
 class FileNamesHandler(BaseMadDashHandler):
     """ """
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name, collection_name):
         """Handle GET."""
         collection = super().get_collection(collection_name, database_name)
@@ -179,13 +182,13 @@ def start(debug=False):
     server.add_route(r'/database/names',
                      DatabasesHandler, args)  # get database names
     server.add_route(r'/(?P<database_name>\w+)/collections',
-                     CollectionsHandler, args)  # get collection names; in: None; out [""]
+                     CollectionsHandler, args)  # get collection names
     server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/histograms',
-                     HistogramsHandler, args)  # get histogram names; in: None; out []
+                     HistogramsHandler, args)  # get histogram names
     server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/histograms/objects',
-                     HistogramObjectsHandler, args)  # get histogram object(s); input [{}]
+                     HistogramObjectsHandler, args)  # get histogram object(s)
     server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/files',
-                     FileNamesHandler, args)  # get histogram names; in: None
+                     FileNamesHandler, args)  # get histogram names
 
     server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
     return server
