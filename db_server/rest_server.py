@@ -40,7 +40,7 @@ class BaseMadDashHandler(RestHandler):
         try:
             return self.db_client[database_name]
         except KeyError:
-            raise tornado.web.HTTPError(400, reason="bad request (bad database name)")
+            raise tornado.web.HTTPError(400, reason=f"database not found ({database_name})")
 
     def get_collection(self, database_name, collection_name):
         """Return collection instance."""
@@ -48,7 +48,15 @@ class BaseMadDashHandler(RestHandler):
         try:
             return database[collection_name]
         except KeyError:
-            raise tornado.web.HTTPError(400, reason="bad request (bad collection_name name)")
+            raise tornado.web.HTTPError(400, reason=f"collection not found ({collection_name})")
+
+    async def get_collection_contents(self, database_name, collection_name):
+        """Return collection's contents."""
+        collection = self.get_collection(database_name, collection_name)
+        objs = []
+        async for o in collection.find():
+            objs.append(o)
+        return objs
 
 # -----------------------------------------------------------------------------
 
@@ -93,13 +101,13 @@ class CollectionsHandler(BaseMadDashHandler):
 
 
 class HistogramsHandler(BaseMadDashHandler):
-    """ """
+    """Handle querying list of histograms' names."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name, collection_name):
         """Handle GET."""
-        collection = super().get_collection(database_name, collection_name)
-        histogram_names = [d['name'] for d in collection.find() if d['name'] != 'filelist']
+        collection_contents = await super().get_collection_contents(database_name, collection_name)
+        histogram_names = [d['name'] for d in collection_contents if d['name'] != 'filelist']
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -108,21 +116,27 @@ class HistogramsHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class HistogramObjectsHandler(BaseMadDashHandler):
-    """ """
+class HistogramObjectHandler(BaseMadDashHandler):
+    """Handle querying/adding histogram object."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, database_name, collection_name):
+    async def get(self, database_name, collection_name, histogram_name):
         """Handle GET."""
         collection = super().get_collection(database_name, collection_name)
-        histograms = [d for d in collection.find() if d['name'] != 'filelist']
+        try:
+            histogram = await collection.find_one({'name': histogram_name})
+        except StopIteration:
+            raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
-        self.write({'histograms': histograms})
+        histogram = {k: histogram[k] for k in histogram if k != '_id'}
+
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histogram': histogram})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin'])
-    async def post(self, database_name, collection_name):
+    async def post(self, database_name, collection_name, histogram_name):
         """Handle POST."""
-        req = json_decode(self.request.body)
         # TODO
         self.write({})
 
@@ -130,15 +144,18 @@ class HistogramObjectsHandler(BaseMadDashHandler):
 
 
 class FileNamesHandler(BaseMadDashHandler):
-    """ """
+    """Handle querying list of filenames for given collection."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self, database_name, collection_name):
         """Handle GET."""
-        collection = super().get_collection(collection_name, database_name)
-        filelist = collection.find_one({'name': 'filelist'})['files']
+        collection = super().get_collection(database_name, collection_name)
+        filelist = await collection.find_one({'name': 'filelist'})
+        filenames = filelist['files']
 
-        self.write({'files': filelist})
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'files': filenames})
 
 # -----------------------------------------------------------------------------
 
@@ -177,18 +194,18 @@ def start(debug=False):
 
     # configure REST routes
     server = RestServer(debug=debug)
-    server.add_route(r'/',
+    server.add_route(r'/$',
                      MainHandler, args)
-    server.add_route(r'/database/names',
+    server.add_route(r'/databases$',
                      DatabasesHandler, args)  # get database names
-    server.add_route(r'/(?P<database_name>\w+)/collections',
+    server.add_route(r'/(?P<database_name>\w+)/collections$',
                      CollectionsHandler, args)  # get collection names
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/histograms',
+    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/histograms$',
                      HistogramsHandler, args)  # get histogram names
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/histograms/objects',
-                     HistogramObjectsHandler, args)  # get histogram object(s)
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>\w+)/files',
-                     FileNamesHandler, args)  # get histogram names
+    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/histogram/(?P<histogram_name>[\w%-]+)$',
+                     HistogramObjectHandler, args)  # get histogram object
+    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/files$',
+                     FileNamesHandler, args)  # get file names
 
     server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
     return server
