@@ -50,13 +50,6 @@ class BaseMadDashHandler(RestHandler):
         except KeyError:
             raise tornado.web.HTTPError(400, reason=f"collection not found ({collection_name})")
 
-    async def get_collection_contents(self, database_name, collection_name):
-        """Return collection's contents."""
-        collection = self.get_collection(database_name, collection_name)
-        objs = []
-        async for o in collection.find():
-            objs.append(o)
-        return objs
 
 # -----------------------------------------------------------------------------
 
@@ -77,7 +70,8 @@ class DatabasesHandler(BaseMadDashHandler):
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
     async def get(self):
         """Handle GET."""
-        excludes = ['system.indexes', 'admin', 'local', 'simprod_filecatalog']
+        excludes = ['system.indexes', 'admin', 'local',
+                    'simprod_filecatalog', 'config', 'token_service']
         database_names = [n for n in await self.db_client.list_database_names() if n not in excludes]
 
         self.write({'databases': database_names})
@@ -89,8 +83,10 @@ class CollectionsHandler(BaseMadDashHandler):
     """Handle querying list of collections from specified database."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, database_name):
+    async def get(self):
         """Handle GET."""
+        database_name = self.get_query_argument('database', default=None)
+
         database = super().get_database(database_name)
         collection_names = [n for n in await database.list_collection_names() if n != 'system.indexes']
 
@@ -103,10 +99,21 @@ class CollectionsHandler(BaseMadDashHandler):
 class HistogramsHandler(BaseMadDashHandler):
     """Handle querying list of histograms' names."""
 
+    async def get_collection_contents(self, database_name, collection_name):
+        """Return collection's contents."""
+        collection = super().get_collection(database_name, collection_name)
+        objs = []
+        async for o in collection.find():
+            objs.append(o)
+        return objs
+
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, database_name, collection_name):
+    async def get(self):
         """Handle GET."""
-        collection_contents = await super().get_collection_contents(database_name, collection_name)
+        database_name = self.get_query_argument('database', default=None)
+        collection_name = self.get_query_argument('collection', default=None)
+
+        collection_contents = await self.get_collection_contents(database_name, collection_name)
         histogram_names = [d['name'] for d in collection_contents if d['name'] != 'filelist']
 
         self.write({'database': database_name,
@@ -119,24 +126,80 @@ class HistogramsHandler(BaseMadDashHandler):
 class HistogramObjectHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, database_name, collection_name, histogram_name):
-        """Handle GET."""
+    async def get_histogram(self, database_name, collection_name, histogram_name):
+        """Return histogram object."""
         collection = super().get_collection(database_name, collection_name)
         try:
             histogram = await collection.find_one({'name': histogram_name})
         except StopIteration:
             raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
+        return histogram
 
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
+    async def get(self, histogram_name):
+        """Handle GET."""
+        database_name = self.get_query_argument('database', default=None)
+        collection_name = self.get_query_argument('collection', default=None)
+
+        histogram = await self.get_histogram(database_name, collection_name, histogram_name)
         histogram = {k: histogram[k] for k in histogram if k != '_id'}
 
         self.write({'database': database_name,
                     'collection': collection_name,
                     'histogram': histogram})
 
+    def get_create_collection(self, database_name, collection_name):
+        """Return collection instance, if it doesn't exist, create it."""
+        database = super().get_database(database_name)
+        try:
+            collection = database[collection_name]
+        except KeyError:
+            database.create_collection(collection_name)
+
+        return collection
+
+    def verify_histogram(self, database_name, collection_name, histogram):
+        """Raise tornado errors if the histogram already exists or is not well structured."""
+        schema = {'bin_values': list,
+                  'name': str,
+                  'underflow': int,
+                  'xmax': int,
+                  'xmin': int,
+                  'overflow': int,
+                  'nan_count': int}
+
+        # check fields
+        missing_keys = schema.keys() - set(histogram.keys())
+        if missing_keys:
+            raise tornado.web.HTTPError(400, reason=f"histogram has missing fields ({missing_keys})")
+        extra_keys = set(histogram.keys()) - schema.keys()
+        if extra_keys:
+            raise tornado.web.HTTPError(400, reason=f"histogram has extra fields ({extra_keys})")
+
+        # check types
+        for field, _type in schema:
+            if not isinstance(histogram[field], _type):
+                raise tornado.web.HTTPError(400, reason=f"histogram field '{field}' is wrong type (should be {_type})")
+
+        # check if histogram already exists
+        exists = False
+        try:
+            exists = bool(await self.get_histogram(database_name, collection_name, histogram['name']))
+        except tornado.web.HTTPError:
+            return
+        if exists:
+            raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
+
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin'])
-    async def post(self, database_name, collection_name, histogram_name):
+    async def post(self):
         """Handle POST."""
+        database_name = self.get_query_argument('database', default=None)
+        collection_name = self.get_query_argument('collection', default=None)
+        histogram = self.get_query_argument('histogram', default=None)
+
+        self.verify_histogram(database_name, collection_name, histogram)  # raises 400 or 409
+        collection = self.get_create_collection(database_name, collection_name)
+
         # TODO
         self.write({})
 
@@ -147,8 +210,11 @@ class FileNamesHandler(BaseMadDashHandler):
     """Handle querying list of filenames for given collection."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, database_name, collection_name):
+    async def get(self):
         """Handle GET."""
+        database_name = self.get_query_argument('database', default=None)
+        collection_name = self.get_query_argument('collection', default=None)
+
         collection = super().get_collection(database_name, collection_name)
         filelist = await collection.find_one({'name': 'filelist'})
         filenames = filelist['files']
@@ -198,13 +264,13 @@ def start(debug=False):
                      MainHandler, args)
     server.add_route(r'/databases$',
                      DatabasesHandler, args)  # get database names
-    server.add_route(r'/(?P<database_name>\w+)/collections$',
+    server.add_route(r'/collections$',
                      CollectionsHandler, args)  # get collection names
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/histograms$',
+    server.add_route(r'/histograms$',
                      HistogramsHandler, args)  # get histogram names
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/histogram/(?P<histogram_name>[\w%-]+)$',
+    server.add_route(r'/histograms/(?P<histogram_name>[\w%-]+)$',
                      HistogramObjectHandler, args)  # get histogram object
-    server.add_route(r'/(?P<database_name>\w+)/(?P<collection_name>[\w%-]+)/files$',
+    server.add_route(r'/files$',
                      FileNamesHandler, args)  # get file names
 
     server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
