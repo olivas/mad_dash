@@ -24,6 +24,8 @@ EXPECTED_CONFIG = {
     'MAD_DASH_REST_PORT': '8080',
 }
 
+REMOVE_ID = {"_id": False}
+
 # -----------------------------------------------------------------------------
 
 
@@ -34,6 +36,13 @@ class BaseMadDashHandler(RestHandler):
         """Initialize a BaseMadDashHandler object."""
         super(BaseMadDashHandler, self).initialize(*args, **kwargs)
         self.db_client = db_client  # pylint: disable=W0201
+
+    def get_optional_argument(self, name, default=None):
+        """Return argument, or default value if not present."""
+        try:
+            return self.get_required_argument(name)
+        except tornado.web.HTTPError:
+            return default
 
     def get_required_argument(self, name):
         """Return argument, raise 400 if not present."""
@@ -91,11 +100,11 @@ class MainHandler(BaseMadDashHandler):
 class DatabasesHandler(BaseMadDashHandler):
     """Handle querying list of databases in mongodb client."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
-        excludes = ['system.indexes', 'admin', 'local',
-                    'simprod_filecatalog', 'config', 'token_service']
+        excludes = ['system.indexes', 'production', 'local',
+                    'simprod_filecatalog', 'config', 'token_service', 'admin']
         database_names = [n for n in await self.db_client.list_database_names() if n not in excludes]
 
         self.write({'databases': database_names})
@@ -106,7 +115,7 @@ class DatabasesHandler(BaseMadDashHandler):
 class CollectionsHandler(BaseMadDashHandler):
     """Handle querying list of collections from specified database."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
         database_name = self.get_required_argument('database')
@@ -120,7 +129,7 @@ class CollectionsHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class HistogramsHandler(BaseMadDashHandler):
+class AllHistogramsHandler(BaseMadDashHandler):
     """Handle querying list of histograms' names."""
 
     async def get_collection_contents(self, database_name, collection_name):
@@ -131,7 +140,7 @@ class HistogramsHandler(BaseMadDashHandler):
             objs.append(o)
         return objs
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
         database_name = self.get_required_argument('database')
@@ -154,45 +163,43 @@ class HistogramObjectHandler(BaseMadDashHandler):
         """Return histogram object."""
         collection = self.get_collection(database_name, collection_name)
         try:
-            histogram = await collection.find_one({'name': histogram_name})
+            histogram = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
         except StopIteration:
             raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
         return histogram
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def get(self, histogram_name):
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    async def get(self):
         """Handle GET."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
+        histogram_name = self.get_required_argument('name')
 
         histogram = await self.get_histogram(database_name, collection_name, histogram_name)
-        histogram = {k: histogram[k] for k in histogram if k != '_id'}
 
         self.write({'database': database_name,
                     'collection': collection_name,
                     'histogram': histogram})
 
-    def verify_histogram(self, database_name, collection_name, histogram):
+    @staticmethod
+    def verify_histogram(histogram):
         """Raise tornado errors if the histogram already exists or is not well structured."""
-        schema = {'bin_values': list,
-                  'name': str,
-                  'underflow': int,
+        schema = {'name': str,
                   'xmax': int,
                   'xmin': int,
                   'overflow': int,
-                  'nan_count': int}
+                  'underflow': int,
+                  'nan_count': int,
+                  'bin_values': list}
 
         # check fields
         missing_keys = schema.keys() - set(histogram.keys())
         if missing_keys:
             raise tornado.web.HTTPError(400, reason=f"histogram has missing fields ({missing_keys})")
-        extra_keys = set(histogram.keys()) - schema.keys()
-        if extra_keys:
-            raise tornado.web.HTTPError(400, reason=f"histogram has extra fields ({extra_keys})")
 
         # check types
-        for field, _type in schema:
+        for field, _type in schema.items():
             if not isinstance(histogram[field], _type):
                 raise tornado.web.HTTPError(400, reason=f"histogram field '{field}' is wrong type (should be {_type})")
 
@@ -203,40 +210,42 @@ class HistogramObjectHandler(BaseMadDashHandler):
             exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
         except tornado.web.HTTPError:
             return
+
         return exists
 
     def update_histogram(self, database_name, collection_name, histogram):
         """Update the histogram's values."""
         prev_histo = self.get_histogram(database_name, collection_name, histogram['name'])
-        # TODO - update values
+        # TODO - update values in place
+        return True
 
-    # TODO - change to admin only
-    # TODO - move to different handler?
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def post(self, histogram_name):
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
+    async def post(self):
         """Handle POST."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
         histogram = self.get_required_argument('histogram')
-
-        body = json_decode(self.request.body)
-        update = ('update' in body.keys()) and body['update']
+        update = self.get_optional_argument('update', default=False)
 
         # raise 400
-        self.verify_histogram(database_name, collection_name, histogram)
+        HistogramObjectHandler.verify_histogram(histogram)
 
         # check for uniqueness, if needed
         if not update and (await self.histogram_exists(database_name, collection_name, histogram['name'])):
             raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
 
         # update or insert
+        histo_updated = False
         if update:
-            self.update_histogram(database_name, collection_name, histogram)
+            histo_updated = self.update_histogram(database_name, collection_name, histogram)
         else:
             collection = self.get_create_collection(database_name, collection_name)
             await collection.insert_one(histogram)
 
-        self.write({})
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histogram': {k: histogram[k] for k in histogram if k != '_id'},
+                    'updated': histo_updated})
 
 # -----------------------------------------------------------------------------
 
@@ -244,26 +253,27 @@ class HistogramObjectHandler(BaseMadDashHandler):
 class FileNamesHandler(BaseMadDashHandler):
     """Handle querying list of filenames for given collection."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
         collection = self.get_collection(database_name, collection_name)
-        filelist = await collection.find_one({'name': 'filelist'})
-        filenames = filelist['files']
+        filelist = await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
+        if filelist:
+            filenames = filelist['files']
+        else:
+            filenames = []
 
         self.write({'database': database_name,
                     'collection': collection_name,
                     'files': filenames})
 
-    # TODO - change to admin only
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['admin', 'web'])
-    async def post(self, histogram_name):
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
+    async def post(self):
         """Handle POST."""
-        pass
-        #
+        update = self.get_optional_argument('update', default=False)
 
 # -----------------------------------------------------------------------------
 
@@ -308,9 +318,9 @@ def start(debug=False):
                      DatabasesHandler, args)  # get database names
     server.add_route(r'/collections$',
                      CollectionsHandler, args)  # get collection names
+    server.add_route(r'/collections/histograms$',
+                     AllHistogramsHandler, args)  # get histogram names
     server.add_route(r'/histograms$',
-                     HistogramsHandler, args)  # get histogram names
-    server.add_route(r'/histograms/(?P<histogram_name>[\w%-]+)$',
                      HistogramObjectHandler, args)  # get histogram object
     server.add_route(r'/files$',
                      FileNamesHandler, args)  # get file names
