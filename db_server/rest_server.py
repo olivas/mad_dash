@@ -159,12 +159,16 @@ class AllHistogramsHandler(BaseMadDashHandler):
 class HistogramObjectHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name, collection_name, histogram_name):
+    async def get_histogram(self, database_name, collection_name, histogram_name, remove_id=True, raise_400=True):
         """Return histogram object."""
         collection = self.get_collection(database_name, collection_name)
-        try:
+
+        if remove_id:
             histogram = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
-        except StopIteration:
+        else:
+            histogram = await collection.find_one({'name': histogram_name})
+
+        if not histogram and raise_400:
             raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
         return histogram
@@ -183,7 +187,7 @@ class HistogramObjectHandler(BaseMadDashHandler):
                     'histogram': histogram})
 
     @staticmethod
-    def verify_histogram(histogram):
+    def verify_histogram_schema(histogram):
         """Raise tornado errors if the histogram already exists or is not well structured."""
         schema = {'name': str,
                   'xmax': int,
@@ -205,19 +209,24 @@ class HistogramObjectHandler(BaseMadDashHandler):
 
     async def histogram_exists(self, database_name, collection_name, histogram_name):
         """Return whether histogram already exists."""
-        exists = False
-        try:
-            exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
-        except tornado.web.HTTPError:
-            return
-
+        exists = bool(await self.get_histogram(database_name, collection_name, histogram_name, raise_400=False))
         return exists
 
-    def update_histogram(self, database_name, collection_name, histogram):
-        """Update the histogram's values."""
-        prev_histo = self.get_histogram(database_name, collection_name, histogram['name'])
-        # TODO - update values in place
-        return True
+    async def update_histogram(self, database_name, collection_name, histogram):
+        """Update the histogram's values. Assumes the histogram already exits."""
+        prev_histo = await self.get_histogram(database_name, collection_name,
+                                              histogram['name'], remove_id=False)
+
+        bin_values = [b1 + b2 for b1, b2 in zip(histogram['bin_values'], prev_histo['bin_values'])]
+        histogram['bin_values'] = bin_values
+        histogram['overflow'] += prev_histo['overflow']
+        histogram['underflow'] += prev_histo['underflow']
+        histogram['nan_count'] += prev_histo['nan_count']
+
+        collection = self.get_collection(database_name, collection_name)
+        result = await collection.replace_one({'_id': prev_histo['_id']}, histogram)
+
+        return result.acknowledged
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self):
@@ -228,16 +237,14 @@ class HistogramObjectHandler(BaseMadDashHandler):
         update = self.get_optional_argument('update', default=False)
 
         # raise 400
-        HistogramObjectHandler.verify_histogram(histogram)
+        HistogramObjectHandler.verify_histogram_schema(histogram)
 
-        # check for uniqueness, if needed
-        if not update and (await self.histogram_exists(database_name, collection_name, histogram['name'])):
-            raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
-
-        # update or insert
+        # update/insert
         histo_updated = False
-        if update:
-            histo_updated = self.update_histogram(database_name, collection_name, histogram)
+        if await self.histogram_exists(database_name, collection_name, histogram['name']):
+            if not update:
+                raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
+            histo_updated = await self.update_histogram(database_name, collection_name, histogram)
         else:
             collection = self.get_create_collection(database_name, collection_name)
             await collection.insert_one(histogram)
