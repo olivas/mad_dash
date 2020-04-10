@@ -167,10 +167,7 @@ def update_linear_histogram_dropdown(histogram_name, database_name, collection_n
     [State('database-url-input-tab1', 'value')])
 def update_log_histogram_dropdown(histogram_name, database_name, collection_name, database_url):
     histogram = db.get_histogram(histogram_name, collection_name, database_name, database_url)
-    layout = go.Layout(title=histogram['name'],
-                       yaxis={'type': 'log',
-                              'autorange': True})
-    return n_histograms_to_plotly([histogram], layout=layout)
+    return n_histograms_to_plotly([histogram], log=True)
 
 
 # NINE PLOTS #
@@ -232,7 +229,8 @@ def update_default_histograms_two_two(database_name, collection_name, database_u
      Input('collection-dropdown-tab1', 'value')],
     [State('database-url-input-tab1', 'value')])
 def update_default_histograms_two_three(database_name, collection_name, database_url):
-    histogram = db.get_histogram('SecondaryMultiplicity', collection_name, database_name, database_url)
+    histogram = db.get_histogram('SecondaryMultiplicity',
+                                 collection_name, database_name, database_url)
     return n_histograms_to_plotly([histogram])
 
 

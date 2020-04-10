@@ -3,7 +3,7 @@
 import plotly.graph_objs as go
 
 
-def n_histograms_to_plotly(histograms, layout=None):
+def n_histograms_to_plotly(histograms, layout=None, log=False):
     """
     Return a plotly Bar graph object with a n overlapped histograms.
 
@@ -20,9 +20,17 @@ def n_histograms_to_plotly(histograms, layout=None):
     if not histograms or not isinstance(histograms, list):
         raise TypeError("`histogram` argument needs to be a list of n histograms.")
 
+    if not any(histograms):
+        return
+
     first = histograms[0]
     if not layout:
-        layout = go.Layout(title=first['name'])
+        if log:
+            layout = go.Layout(title=first['name'],
+                               yaxis={'type': 'log', 'autorange': True})
+        else:
+            layout = go.Layout(title=first['name'])
+
     bin_width = (first['xmax'] - first['xmin']) / float(len(first['bin_values']))
     x_values = [first['xmin'] + i * bin_width for i in range(len(first['bin_values']))]
     text = f"nan({first['nan_count']}) under({first['underflow']}) over({first['overflow']})"

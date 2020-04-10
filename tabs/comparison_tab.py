@@ -189,8 +189,10 @@ def update_histogram_dropdown_options(n_clicks, database_name, lhs_collection_na
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
 def update_linear_histogram_dropdown(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
+    lhs_histogram = db.get_histogram(
+        histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(
+        histogram_name, rhs_collection_name, database_name, database_url)
 
     return n_histograms_to_plotly([lhs_histogram, rhs_histogram])
 
@@ -203,13 +205,12 @@ def update_linear_histogram_dropdown(histogram_name, database_name, lhs_collecti
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
 def update_log_histogram_dropdown(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
+    lhs_histogram = db.get_histogram(
+        histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(
+        histogram_name, rhs_collection_name, database_name, database_url)
 
-    layout = go.Layout(title=lhs_histogram['name'],
-                       yaxis={'type': 'log', 'autorange': True})
-
-    return n_histograms_to_plotly([lhs_histogram, rhs_histogram], layout=layout)
+    return n_histograms_to_plotly([lhs_histogram, rhs_histogram], log=True)
 
 
 @app.callback(
@@ -220,8 +221,10 @@ def update_log_histogram_dropdown(histogram_name, database_name, lhs_collection_
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
 def update_ratio_histogram(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
+    lhs_histogram = db.get_histogram(
+        histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(
+        histogram_name, rhs_collection_name, database_name, database_url)
 
     scale_to_match(lhs_histogram, rhs_histogram)
 
@@ -241,8 +244,10 @@ def update_ratio_histogram(histogram_name, database_name, lhs_collection_name, r
      State('collection-dropdown-rhs-tab2', 'value'),
      State('database-url-input-tab2', 'value')])
 def update_cdf_histogram(histogram_name, database_name, lhs_collection_name, rhs_collection_name, database_url):
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name, database_url)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name, database_url)
+    lhs_histogram = db.get_histogram(
+        histogram_name, lhs_collection_name, database_name, database_url)
+    rhs_histogram = db.get_histogram(
+        histogram_name, rhs_collection_name, database_name, database_url)
 
     scale_to_match(lhs_histogram, rhs_histogram)
 
