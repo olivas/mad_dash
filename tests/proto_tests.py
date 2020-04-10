@@ -92,7 +92,9 @@ def get():
 
 def main():
     """Main."""
-    action_choices = [ingest, get, post, update]
+    # get all functions in this file
+    action_choices = [o[1] for o in inspect.getmembers(
+        sys.modules[__name__]) if (inspect.isfunction(o[1]) and o[0] != 'main')]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('actions', metavar='ACTIONS', nargs='*',
