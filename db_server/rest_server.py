@@ -83,6 +83,15 @@ class BaseMadDashHandler(RestHandler):
 
         return collection
 
+    async def get_histograms_in_collection(self, database_name, collection_name):
+        """Return collection's contents."""
+        collection = self.get_collection(database_name, collection_name)
+        objs = []
+        async for o in collection.find(projection=REMOVE_ID):
+            objs.append(o)
+
+        return [c for c in objs if c['name'] != 'filelist']
+
 
 # -----------------------------------------------------------------------------
 
@@ -97,7 +106,7 @@ class MainHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class DatabasesHandler(BaseMadDashHandler):
+class DatabasesNamesHandler(BaseMadDashHandler):
     """Handle querying list of databases in mongodb client."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
@@ -112,7 +121,7 @@ class DatabasesHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class CollectionsHandler(BaseMadDashHandler):
+class CollectionsNamesHandler(BaseMadDashHandler):
     """Handle querying list of collections from specified database."""
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
@@ -129,16 +138,8 @@ class CollectionsHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class AllHistogramsHandler(BaseMadDashHandler):
+class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
     """Handle querying list of histograms' names."""
-
-    async def get_collection_contents(self, database_name, collection_name):
-        """Return collection's contents."""
-        collection = self.get_collection(database_name, collection_name)
-        objs = []
-        async for o in collection.find():
-            objs.append(o)
-        return objs
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
@@ -146,8 +147,8 @@ class AllHistogramsHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        collection_contents = await self.get_collection_contents(database_name, collection_name)
-        histogram_names = [c['name'] for c in collection_contents if c['name'] != 'filelist']
+        histograms = await self.get_histograms_in_collection(database_name, collection_name)
+        histogram_names = [c['name'] for c in histograms]
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -156,7 +157,25 @@ class AllHistogramsHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class HistogramObjectHandler(BaseMadDashHandler):
+class CollectionsHistogramsHandler(BaseMadDashHandler):
+    """Handle querying list of histogram objects in given collection."""
+
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    async def get(self):
+        """Handle GET."""
+        database_name = self.get_required_argument('database')
+        collection_name = self.get_required_argument('collection')
+
+        histograms = await self.get_histograms_in_collection(database_name, collection_name)
+
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histograms': histograms})
+
+# -----------------------------------------------------------------------------
+
+
+class HistogramHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
     async def get_histogram(self, database_name, collection_name, histogram_name, remove_id=True):
@@ -239,7 +258,7 @@ class HistogramObjectHandler(BaseMadDashHandler):
         update = self.get_optional_argument('update', default=False)
 
         # raise 400
-        HistogramObjectHandler.verify_histogram_schema(histogram)
+        HistogramHandler.verify_histogram_schema(histogram)
 
         # update/insert
         histo_updated = False
@@ -367,15 +386,17 @@ def start(debug=False):
     server = RestServer(debug=debug)
     server.add_route(r'/$',
                      MainHandler, args)
-    server.add_route(r'/databases$',
-                     DatabasesHandler, args)  # get database names
-    server.add_route(r'/collections$',
-                     CollectionsHandler, args)  # get collection names
+    server.add_route(r'/databases/names$',
+                     DatabasesNamesHandler, args)  # get database names
+    server.add_route(r'/collections/names$',
+                     CollectionsNamesHandler, args)  # get collection names
+    server.add_route(r'/collections/histograms/names$',
+                     CollectionsHistogramsNamesHandler, args)  # get all histogram names in collection
     server.add_route(r'/collections/histograms$',
-                     AllHistogramsHandler, args)  # get histogram names
-    server.add_route(r'/histograms$',
-                     HistogramObjectHandler, args)  # get histogram object
-    server.add_route(r'/files$',
+                     CollectionsHistogramsHandler, args)  # get all histogram objects in collection
+    server.add_route(r'/histogram$',
+                     HistogramHandler, args)  # get histogram object
+    server.add_route(r'/files/names$',
                      FileNamesHandler, args)  # get file names
 
     server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))

@@ -107,22 +107,22 @@ def get():
         md_rc = RestClient('http://localhost:8080',
                            token=token_json['access'], timeout=5, retries=0)
 
-        databases = await md_rc.request('GET', '/databases')
+        databases = await md_rc.request('GET', '/databases/names')
         print(databases)
 
         for d in databases['databases']:
             db_request_body = {'database': d}
-            collections = await md_rc.request('GET', f'/collections', db_request_body)
+            collections = await md_rc.request('GET', f'/collections/names', db_request_body)
             print(collections)
             for c in collections['collections']:
                 coll_request_body = {'database': d, 'collection': c}
-                histograms = await md_rc.request('GET', f'/collections/histograms', coll_request_body)
+                histograms = await md_rc.request('GET', f'/collections/histograms/names', coll_request_body)
                 print(histograms)
                 for h in histograms['histograms']:
                     histo_request_body = {'database': d, 'collection': c, 'name': h}
-                    histo = await md_rc.request('GET', f'/histograms', histo_request_body)
+                    histo = await md_rc.request('GET', f'/histogram', histo_request_body)
                     print(histo)
-                filelist = await md_rc.request('GET', f'/files', coll_request_body)
+                filelist = await md_rc.request('GET', f'/files/names', coll_request_body)
                 print(filelist)
 
         md_rc.close()
