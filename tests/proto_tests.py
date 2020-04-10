@@ -1,6 +1,7 @@
 """Just a few tests. Nothing official here."""
 import argparse
 import asyncio
+import inspect
 import subprocess
 import sys
 
@@ -58,6 +59,45 @@ def post(do_update=False):
 def update():
     """Run posts with updating."""
     post(do_update=True)
+
+
+FILES = ['file_one.txt', 'file_two.txt', 'file_three.txt',
+         'file_four.txt', 'file_five.txt', 'file_six.txt', ]
+
+
+def post_file(do_update=False):
+    """Run some test posts."""
+    async def _post_file(do_update):
+        token_json = requests.get('http://localhost:8888/token?scope=maddash:production').json()
+        md_rc = RestClient('http://localhost:8080',
+                           token=token_json['access'], timeout=5, retries=0)
+
+        print('\n')
+
+        post_body = {'database': 'simprod_histograms',
+                     'collection': 'TEST',
+                     'files': FILES,
+                     'update': do_update}
+        print(f"POST request: {post_body}")
+        post_response = await md_rc.request('POST', f"/files", post_body)
+        print(f"POST response: {post_response}")
+
+        print('\n')
+
+        get_body = {'database': 'simprod_histograms',
+                    'collection': 'TEST'}
+        print(f"GET request: {get_body}")
+        get_histo = await md_rc.request('GET', f"/files", get_body)
+        print(f"GET response: {get_histo}")
+
+        print('\n')
+
+    asyncio.get_event_loop().run_until_complete(_post_file(do_update))
+
+
+def update_file():
+    """Run posts with updating."""
+    post_file(do_update=True)
 
 
 def get():

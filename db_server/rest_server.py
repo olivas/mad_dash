@@ -147,7 +147,7 @@ class AllHistogramsHandler(BaseMadDashHandler):
         collection_name = self.get_required_argument('collection')
 
         collection_contents = await self.get_collection_contents(database_name, collection_name)
-        histogram_names = [d['name'] for d in collection_contents if d['name'] != 'filelist']
+        histogram_names = [c['name'] for c in collection_contents if c['name'] != 'filelist']
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -159,7 +159,7 @@ class AllHistogramsHandler(BaseMadDashHandler):
 class HistogramObjectHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name, collection_name, histogram_name, remove_id=True, raise_400=True):
+    async def get_histogram(self, database_name, collection_name, histogram_name, remove_id=True):
         """Return histogram object."""
         collection = self.get_collection(database_name, collection_name)
 
@@ -167,9 +167,6 @@ class HistogramObjectHandler(BaseMadDashHandler):
             histogram = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
         else:
             histogram = await collection.find_one({'name': histogram_name})
-
-        if not histogram and raise_400:
-            raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
         return histogram
 
@@ -181,6 +178,8 @@ class HistogramObjectHandler(BaseMadDashHandler):
         histogram_name = self.get_required_argument('name')
 
         histogram = await self.get_histogram(database_name, collection_name, histogram_name)
+        if not histogram:
+            raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -207,9 +206,12 @@ class HistogramObjectHandler(BaseMadDashHandler):
             if not isinstance(histogram[field], _type):
                 raise tornado.web.HTTPError(400, reason=f"histogram field '{field}' is wrong type (should be {_type})")
 
+        if histogram['name'] == 'filelist':
+            raise tornado.web.HTTPError(400, reason=f"histogram cannot be named 'filelist'")
+
     async def histogram_exists(self, database_name, collection_name, histogram_name):
         """Return whether histogram already exists."""
-        exists = bool(await self.get_histogram(database_name, collection_name, histogram_name, raise_400=False))
+        exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
         return exists
 
     async def update_histogram(self, database_name, collection_name, histogram):
@@ -248,6 +250,7 @@ class HistogramObjectHandler(BaseMadDashHandler):
         else:
             collection = self.get_create_collection(database_name, collection_name)
             await collection.insert_one(histogram)
+            print(await collection.find().to_list(2))
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -260,27 +263,70 @@ class HistogramObjectHandler(BaseMadDashHandler):
 class FileNamesHandler(BaseMadDashHandler):
     """Handle querying list of filenames for given collection."""
 
+    async def get_filelist(self, database_name, collection_name, remove_id=True):
+        """Return list of files in collection."""
+        collection = self.get_collection(database_name, collection_name)
+
+        if remove_id:
+            return await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
+        return await collection.find_one({'name': 'filelist'})
+
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        collection = self.get_collection(database_name, collection_name)
-        filelist = await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
+        filenamelist = []
+        filelist = await self.get_filelist(database_name, collection_name)
         if filelist:
-            filenames = filelist['files']
-        else:
-            filenames = []
+            filenamelist = filelist['files']
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'files': filenames})
+                    'files': filenamelist})
+
+    async def update_filelist(self, database_name, collection_name, filenamelist):
+        """Update (extends) filelist. Assumes the filelist already exits."""
+        prev_filelist = await self.get_filelist(database_name, collection_name, remove_id=False)
+
+        filenamelist[:0] = prev_filelist['files']
+
+        collection = self.get_collection(database_name, collection_name)
+        filelist = {'name': 'filelist',
+                    'files': filenamelist}
+        result = await collection.replace_one({'_id': prev_filelist['_id']}, filelist)
+
+        return result.acknowledged
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self):
         """Handle POST."""
+        database_name = self.get_required_argument('database')
+        collection_name = self.get_required_argument('collection')
+        filenamelist = self.get_required_argument('files')
         update = self.get_optional_argument('update', default=False)
+
+        # type check
+        if not isinstance(filenamelist, list):
+            raise tornado.web.HTTPError(400, reason=f"'files' field is not a list ({type(filenamelist)})")
+
+        # update/insert
+        files_updated = False
+        if await self.get_filelist(database_name, collection_name):
+            if not update:
+                raise tornado.web.HTTPError(409, reason=f"files already in collection, {collection_name}")
+            files_updated = await self.update_filelist(database_name, collection_name, filenamelist)
+        else:
+            collection = self.get_create_collection(database_name, collection_name)
+            await collection.insert_one({'name': 'filelist',
+                                         'files': filenamelist})
+
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'files': filenamelist,
+                    'updated': files_updated})
+
 
 # -----------------------------------------------------------------------------
 
