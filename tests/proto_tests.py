@@ -34,21 +34,21 @@ def post(do_update=False):
 
         print('\n')
 
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': 'TEST',
                      'histogram': HISTOGRAM,
                      'update': do_update}
         print(f"POST request: {post_body}")
-        post_response = await md_rc.request('POST', f"/histograms", post_body)
+        post_response = await md_rc.request('POST', f"/histogram", post_body)
         print(f"POST response: {post_response}")
 
         print('\n')
 
-        get_body = {'database': 'simprod_histograms',
+        get_body = {'database': 'test_histograms',
                     'collection': 'TEST',
                     'name': HISTOGRAM['name']}
         print(f"GET request: {get_body}")
-        get_histo = await md_rc.request('GET', f"/histograms", get_body)
+        get_histo = await md_rc.request('GET', f"/histogram", get_body)
         print(f"GET response: {get_histo}")
 
         print('\n')
