@@ -5,7 +5,7 @@ import logging
 from urllib.parse import quote_plus
 
 import tornado.web
-from motor.motor_tornado import MotorClient, MotorDatabase
+from motor.motor_tornado import MotorClient
 from rest_tools.client import json_decode
 from rest_tools.server import RestHandler, RestHandlerSetup, RestServer, from_environment, handler
 
@@ -17,14 +17,87 @@ EXPECTED_CONFIG = {
     'MAD_DASH_AUTH_SECRET': 'secret',
     'MAD_DASH_MONGODB_AUTH_USER': '',  # None means required to specify
     'MAD_DASH_MONGODB_AUTH_PASS': '',  # empty means no authentication required
-    # 'MAD_DASH_MONGODB_DATABASE_NAME': 'lta',
     'MAD_DASH_MONGODB_HOST': 'localhost',
     'MAD_DASH_MONGODB_PORT': '27017',
     'MAD_DASH_REST_HOST': 'localhost',
     'MAD_DASH_REST_PORT': '8080',
 }
 
+EXCLUDE_DBS = ['system.indexes', 'production', 'local',
+               'simprod_filecatalog', 'config', 'token_service', 'admin']
+
 REMOVE_ID = {"_id": False}
+
+# -----------------------------------------------------------------------------
+
+
+class MadDashMotorClient():
+    """MotorClient with additional guardrails for Mad-Dash things."""
+
+    def __init__(self, motor_client):
+        """Set-up."""
+        self.motor_client = motor_client
+
+    async def get_database_names(self):
+        """Return all databases' names."""
+        database_names = [n for n in await self.motor_client.list_database_names() if n not in EXCLUDE_DBS]
+        return database_names
+
+    def get_database(self, database_name):
+        """Return database instance."""
+        try:
+            return self.motor_client[database_name]
+        except (KeyError, TypeError):
+            raise tornado.web.HTTPError(400, reason=f"database not found ({database_name})")
+
+    async def get_collection_names(self, database_name):
+        """Return collection names in database."""
+        database = self.get_database(database_name)
+        collection_names = [n for n in await database.list_collection_names() if n != 'system.indexes']
+
+        return collection_names
+
+    def get_collection(self, database_name, collection_name):
+        """Return collection instance."""
+        database = self.get_database(database_name)
+        try:
+            return database[collection_name]
+        except KeyError:
+            raise tornado.web.HTTPError(400, reason=f"collection not found ({collection_name})")
+
+    async def ensure_collection_indexes(self, database_name, collection_name):
+        """Create indexes in collection."""
+        collection = self.get_collection(database_name, collection_name)
+        await collection.create_index('name', name='name_index', unique=True)
+        async for index in collection.list_indexes():
+            print(index)
+
+    async def ensure_all_databases_indexes(self):
+        """Create all indexes in all databases."""
+        for database_name in await self.get_database_names():
+            for collection_name in await self.get_collection_names(database_name):
+                await self.ensure_collection_indexes(database_name, collection_name)
+
+    async def get_create_collection(self, database_name, collection_name):
+        """Return collection instance, if it doesn't exist, create it."""
+        database = self.get_database(database_name)
+        try:
+            collection = database[collection_name]
+        except KeyError:
+            database.create_collection(collection_name)
+            await self.ensure_collection_indexes(database_name, collection_name)
+
+        return collection
+
+    async def get_histograms_in_collection(self, database_name, collection_name):
+        """Return collection's contents."""
+        collection = self.get_collection(database_name, collection_name)
+
+        objs = []
+        async for o in collection.find(projection=REMOVE_ID):
+            objs.append(o)
+
+        return [c for c in objs if c['name'] != 'filelist']
 
 # -----------------------------------------------------------------------------
 
@@ -32,10 +105,11 @@ REMOVE_ID = {"_id": False}
 class BaseMadDashHandler(RestHandler):
     """BaseMadDashHandler is a RestHandler for all Mad-Dash routes."""
 
-    def initialize(self, db_client, *args, **kwargs):  # pylint: disable=W0221
+    def initialize(self, motor_client, *args, **kwargs):  # pylint: disable=W0221
         """Initialize a BaseMadDashHandler object."""
         super(BaseMadDashHandler, self).initialize(*args, **kwargs)
-        self.db_client = db_client  # pylint: disable=W0201
+        # self.motor_client = motor_client  # pylint: disable=W0201
+        self.md_mc = MadDashMotorClient(motor_client)  # pylint: disable=W0201
 
     def get_optional_argument(self, name, default=None):
         """Return argument, or default value if not present."""
@@ -58,40 +132,6 @@ class BaseMadDashHandler(RestHandler):
         # fall-through
         raise tornado.web.HTTPError(400, reason=f"missing argument ({name})")
 
-    def get_database(self, database_name):
-        """Return database instance."""
-        try:
-            return self.db_client[database_name]
-        except (KeyError, TypeError):
-            raise tornado.web.HTTPError(400, reason=f"database not found ({database_name})")
-
-    def get_collection(self, database_name, collection_name):
-        """Return collection instance."""
-        database = self.get_database(database_name)
-        try:
-            return database[collection_name]
-        except KeyError:
-            raise tornado.web.HTTPError(400, reason=f"collection not found ({collection_name})")
-
-    def get_create_collection(self, database_name, collection_name):
-        """Return collection instance, if it doesn't exist, create it."""
-        database = self.get_database(database_name)
-        try:
-            collection = database[collection_name]
-        except KeyError:
-            database.create_collection(collection_name)
-
-        return collection
-
-    async def get_histograms_in_collection(self, database_name, collection_name):
-        """Return collection's contents."""
-        collection = self.get_collection(database_name, collection_name)
-        objs = []
-        async for o in collection.find(projection=REMOVE_ID):
-            objs.append(o)
-
-        return [c for c in objs if c['name'] != 'filelist']
-
 
 # -----------------------------------------------------------------------------
 
@@ -112,9 +152,7 @@ class DatabasesNamesHandler(BaseMadDashHandler):
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self):
         """Handle GET."""
-        excludes = ['system.indexes', 'production', 'local',
-                    'simprod_filecatalog', 'config', 'token_service', 'admin']
-        database_names = [n for n in await self.db_client.list_database_names() if n not in excludes]
+        database_names = await self.md_mc.get_database_names()
 
         self.write({'databases': database_names})
 
@@ -129,8 +167,7 @@ class CollectionsNamesHandler(BaseMadDashHandler):
         """Handle GET."""
         database_name = self.get_required_argument('database')
 
-        database = self.get_database(database_name)
-        collection_names = [n for n in await database.list_collection_names() if n != 'system.indexes']
+        collection_names = await self.md_mc.get_collection_names(database_name)
 
         self.write({'database': database_name,
                     'collections': collection_names})
@@ -147,7 +184,7 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histograms = await self.get_histograms_in_collection(database_name, collection_name)
+        histograms = await self.md_mc.get_histograms_in_collection(database_name, collection_name)
         histogram_names = [c['name'] for c in histograms]
 
         self.write({'database': database_name,
@@ -166,7 +203,7 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histograms = await self.get_histograms_in_collection(database_name, collection_name)
+        histograms = await self.md_mc.get_histograms_in_collection(database_name, collection_name)
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -180,7 +217,7 @@ class HistogramHandler(BaseMadDashHandler):
 
     async def get_histogram(self, database_name, collection_name, histogram_name, remove_id=True):
         """Return histogram object."""
-        collection = self.get_collection(database_name, collection_name)
+        collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
             histogram = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
@@ -244,7 +281,7 @@ class HistogramHandler(BaseMadDashHandler):
         histogram['underflow'] += prev_histo['underflow']
         histogram['nan_count'] += prev_histo['nan_count']
 
-        collection = self.get_collection(database_name, collection_name)
+        collection = self.md_mc.get_collection(database_name, collection_name)
         result = await collection.replace_one({'_id': prev_histo['_id']}, histogram)
 
         return result.acknowledged
@@ -267,9 +304,8 @@ class HistogramHandler(BaseMadDashHandler):
                 raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
             histo_updated = await self.update_histogram(database_name, collection_name, histogram)
         else:
-            collection = self.get_create_collection(database_name, collection_name)
+            collection = await self.md_mc.get_create_collection(database_name, collection_name)
             await collection.insert_one(histogram)
-            print(await collection.find().to_list(2))
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -284,7 +320,7 @@ class FileNamesHandler(BaseMadDashHandler):
 
     async def get_filelist(self, database_name, collection_name, remove_id=True):
         """Return list of files in collection."""
-        collection = self.get_collection(database_name, collection_name)
+        collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
             return await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
@@ -311,7 +347,7 @@ class FileNamesHandler(BaseMadDashHandler):
 
         filenamelist[:0] = prev_filelist['files']
 
-        collection = self.get_collection(database_name, collection_name)
+        collection = self.md_mc.get_collection(database_name, collection_name)
         filelist = {'name': 'filelist',
                     'files': filenamelist}
         result = await collection.replace_one({'_id': prev_filelist['_id']}, filelist)
@@ -337,7 +373,7 @@ class FileNamesHandler(BaseMadDashHandler):
                 raise tornado.web.HTTPError(409, reason=f"files already in collection, {collection_name}")
             files_updated = await self.update_filelist(database_name, collection_name, filenamelist)
         else:
-            collection = self.get_create_collection(database_name, collection_name)
+            collection = await self.md_mc.get_create_collection(database_name, collection_name)
             await collection.insert_one({'name': 'filelist',
                                          'files': filenamelist})
 
@@ -351,9 +387,9 @@ class FileNamesHandler(BaseMadDashHandler):
 
 
 def start(debug=False):
-    """Start a Mad Dash DB service."""
+    """Start a Mad Dash REST service."""
     config = from_environment(EXPECTED_CONFIG)
-    # logger = logging.getLogger('lta.rest')
+
     for name in config:
         logging.info(f"{name} = {config[name]}")
 
@@ -371,16 +407,15 @@ def start(debug=False):
     mongo_pass = quote_plus(config["MAD_DASH_MONGODB_AUTH_PASS"])
     mongo_host = config["MAD_DASH_MONGODB_HOST"]
     mongo_port = int(config["MAD_DASH_MONGODB_PORT"])
-    # mongo_db = config["MAD_DASH_MONGODB_DATABASE_NAME"]
-    # mongodb_url = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db}"
     mongodb_url = f"mongodb://{mongo_host}:{mongo_port}"
     if mongo_user and mongo_pass:
-        # mongodb_url = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}/{mongo_db}"
         mongodb_url = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}"
-    # ensure_mongo_indexes(mongodb_url, mongo_db)
-    # motor_client = MotorClient(mongodb_url)
-    # args['db_client'] = motor_client[mongo_db]
-    args['db_client'] = MotorClient(mongodb_url)
+
+    # ensure indexes
+    md_mc = MadDashMotorClient(MotorClient(mongodb_url))
+    asyncio.get_event_loop().run_until_complete(md_mc.ensure_all_databases_indexes())
+
+    args['motor_client'] = MotorClient(mongodb_url)
 
     # configure REST routes
     server = RestServer(debug=debug)
