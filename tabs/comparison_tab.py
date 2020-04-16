@@ -5,10 +5,9 @@ from statistics.compare import compare
 import dash_core_components as dcc
 import dash_html_components as html
 import db
-import plotly.graph_objs as go
 from application import app
 from dash.dependencies import Input, Output, State
-from histogram_converter import n_histograms_to_plotly
+from histogram_converter import histogram_to_plotly, n_histograms_to_plotly
 
 
 def cdf(histogram):
@@ -232,8 +231,7 @@ def update_ratio_histogram(histogram_name, database_name, lhs_collection_name, r
     for idx, bv in enumerate(rhs_histogram['bin_values']):
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
-    layout = go.Layout(title="Scaled to Match Ratio")
-    return n_histograms_to_plotly([ratio_histogram], layout=layout)
+    return histogram_to_plotly(ratio_histogram, title="Scaled to Match Ratio")
 
 
 @app.callback(
@@ -255,5 +253,4 @@ def update_cdf_histogram(histogram_name, database_name, lhs_collection_name, rhs
     for idx, bv in enumerate(cdf(rhs_histogram)['bin_values']):
         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
 
-    layout = go.Layout(title="Scaled to Match CDF Ratio")
-    return n_histograms_to_plotly([ratio_histogram], layout=layout)
+    return histogram_to_plotly(ratio_histogram, title="Scaled to Match CDF Ratio")
