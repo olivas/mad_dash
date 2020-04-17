@@ -1,11 +1,14 @@
 """Just a few tests. Nothing official here."""
+import copy
+import time
+
 import pytest
 import requests
 from rest_tools.client import RestClient
 
 
-def _setup_rest_client():
-    token_json = requests.get('http://localhost:8888/token?scope=maddash:web').json()
+def _setup_rest_client(role):
+    token_json = requests.get(f'http://localhost:8888/token?scope=maddash:{role}').json()
     md_rc = RestClient('http://localhost:8080',
                        token=token_json['access'], timeout=5, retries=0)
     return md_rc
@@ -27,39 +30,88 @@ HISTOGRAMS = [{'bin_values': [9, 9, 15, 8, 10, 18, 18, 25, 26, 28, 36, 35, 36, 3
               ]
 
 
+def _get_brand_new_histograms():
+    timestamp = int(time.time())
+    uniques = copy.deepcopy(HISTOGRAMS)
+    for histo in uniques:
+        histo['name'] = f"{histo['name']}_{timestamp}"
+
+    return uniques
+
+
 @pytest.mark.asyncio
-async def test_post(do_update=False):
+async def test_post():
     """Run some test posts."""
-    md_rc = _setup_rest_client()
+    md_rc = _setup_rest_client('production')
 
-    for histo in HISTOGRAMS:
-        print('\n')
+    for histo in _get_brand_new_histograms():
+        for i in range(2):
+            # POST
+            post_body = {'database': 'test_histograms',
+                         'collection': 'TEST',
+                         'histogram': histo}
+            if i == 0:
+                post_response = await md_rc.request('POST', f"/histogram", post_body)
+                assert post_response['histogram'] == histo
+                assert not post_response['updated']
+            else:
+                with pytest.raises(requests.exceptions.HTTPError) as e:
+                    post_response = await md_rc.request('POST', f"/histogram", post_body)
+                    assert e.response.status_code == 409
 
-        post_body = {'database': 'test_histograms',
-                     'collection': 'TEST',
-                     'histogram': histo,
-                     'update': do_update}
-        print(f"POST request: {post_body}")
-        post_response = await md_rc.request('POST', f"/histogram", post_body)
-        print(f"POST response: {post_response}")
+            # GET
+            get_body = {'database': 'test_histograms',
+                        'collection': 'TEST',
+                        'name': histo['name']}
+            get_response = await md_rc.request('GET', f"/histogram", get_body)
+            assert get_response['histogram'] == histo
 
-        print('\n')
 
-        get_body = {'database': 'test_histograms',
-                    'collection': 'TEST',
-                    'name': histo['name']}
-        print(f"GET request: {get_body}")
-        get_histo = await md_rc.request('GET', f"/histogram", get_body)
-        print(f"GET response: {get_histo}")
+def _get_updated_histo(histo, update_with_this):
+    new_histo = copy.deepcopy(histo)
 
-        print('\n')
+    bin_values = [b1 + b2 for b1, b2 in zip(histo['bin_values'], update_with_this['bin_values'])]
+    new_histo['bin_values'] = bin_values
+    new_histo['overflow'] += update_with_this['overflow']
+    new_histo['underflow'] += update_with_this['underflow']
+    new_histo['nan_count'] += update_with_this['nan_count']
+
+    return new_histo
 
 
 @pytest.mark.asyncio
 async def test_update():
     """Run posts with updating."""
-    await test_post(do_update=True)
+    md_rc = _setup_rest_client('production')
 
+    histograms = _get_brand_new_histograms()
+    update_with_this = histograms[0]  # use first histogram for updating values in all histograms
+
+    for histo in histograms:
+        for i in range(2):
+            # POST
+            post_body = {'database': 'test_histograms',
+                         'collection': 'TEST',
+                         'histogram': histo,
+                         'update': True}
+            if i == 0:
+                post_response = await md_rc.request('POST', f"/histogram", post_body)
+                assert post_response['histogram'] == histo
+                assert not post_response['updated']
+            else:
+                post_response = await md_rc.request('POST', f"/histogram", post_body)
+                assert post_response['histogram'] == _get_updated_histo(histo, update_with_this)
+                assert post_response['updated']
+
+            # GET
+            get_body = {'database': 'test_histograms',
+                        'collection': 'TEST',
+                        'name': histo['name']}
+            get_response = await md_rc.request('GET', f"/histogram", get_body)
+            if i == 0:
+                assert get_response['histogram'] == histo
+            else:
+                assert get_response['histogram'] == _get_updated_histo(histo, update_with_this)
 
 FILES = ['file_one.txt', 'file_two.txt', 'file_three.txt',
          'file_four.txt', 'file_five.txt', 'file_six.txt', ]
@@ -68,7 +120,7 @@ FILES = ['file_one.txt', 'file_two.txt', 'file_three.txt',
 @pytest.mark.asyncio
 async def test_post_file(do_update=False):
     """Run some test posts."""
-    md_rc = _setup_rest_client()
+    md_rc = _setup_rest_client('production')
 
     print('\n')
 
@@ -77,7 +129,7 @@ async def test_post_file(do_update=False):
                  'files': FILES,
                  'update': do_update}
     print(f"POST request: {post_body}")
-    post_response = await md_rc.request('POST', f"/files", post_body)
+    post_response = await md_rc.request('POST', f"/files/names", post_body)
     print(f"POST response: {post_response}")
 
     print('\n')
@@ -85,8 +137,8 @@ async def test_post_file(do_update=False):
     get_body = {'database': 'simprod_histograms',
                 'collection': 'TEST'}
     print(f"GET request: {get_body}")
-    get_histo = await md_rc.request('GET', f"/files", get_body)
-    print(f"GET response: {get_histo}")
+    get_response = await md_rc.request('GET', f"/files/names", get_body)
+    print(f"GET response: {get_response}")
 
     print('\n')
 
@@ -100,7 +152,7 @@ async def test_update_file():
 @pytest.mark.asyncio
 async def test_get():
     """Run some test queries."""
-    md_rc = _setup_rest_client()
+    md_rc = _setup_rest_client('web')
 
     databases = await md_rc.request('GET', '/databases/names')
     print(databases)
