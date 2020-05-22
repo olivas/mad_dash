@@ -56,7 +56,7 @@ class TestWebClient:
     @pytest.mark.asyncio
     async def test_post_files(self, db_rc):
         """Failure-test role authorization."""
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': 'collection_name',
                      'files': ['test.txt']}
         with pytest.raises(requests.exceptions.HTTPError) as e:

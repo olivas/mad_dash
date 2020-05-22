@@ -142,14 +142,14 @@ class TestProductionClient:
         collection_name = f'TEST-{uuid.uuid4().hex}'
 
         async def assert_get(_files):
-            get_body = {'database': 'simprod_histograms',
+            get_body = {'database': 'test_histograms',
                         'collection': collection_name}
             get_resp = await db_rc.request('GET', '/files/names', get_body)
             assert get_resp['files'] == _files
 
         # 1. POST with no update flag
         files = TestProductionClient._create_new_files()
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': files}
         post_resp = await db_rc.request('POST', '/files/names', post_body)
@@ -159,7 +159,7 @@ class TestProductionClient:
         await assert_get(files)
 
         # 2. POST again with no update flag
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': files}
         with pytest.raises(requests.exceptions.HTTPError) as e:
@@ -170,7 +170,7 @@ class TestProductionClient:
         await assert_get(files)
 
         # 3. POST with update but no new files
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': files,
                      'update': True}
@@ -182,7 +182,7 @@ class TestProductionClient:
 
         # 4. POST with update flag and new files
         new_files = TestProductionClient._create_new_files()
-        post_body = {'database': 'simprod_histograms',
+        post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': new_files,
                      'update': True}
