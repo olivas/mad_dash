@@ -263,7 +263,7 @@ class HistogramHandler(BaseMadDashHandler):
                 raise tornado.web.HTTPError(400, reason=f"histogram field '{field}' is wrong type (should be {_type})")
 
         if histogram['name'] == 'filelist':
-            raise tornado.web.HTTPError(400, reason=f"histogram cannot be named 'filelist'")
+            raise tornado.web.HTTPError(400, reason="histogram cannot be named 'filelist'")
 
     async def histogram_exists(self, database_name, collection_name, histogram_name):
         """Return whether histogram already exists."""
@@ -345,14 +345,14 @@ class FileNamesHandler(BaseMadDashHandler):
         """Update (extends) filelist. Assumes the filelist already exits."""
         prev_filelist = await self.get_filelist(database_name, collection_name, remove_id=False)
 
-        filenamelist[:0] = prev_filelist['files']
+        filenamelist = sorted(set(filenamelist) | set(prev_filelist['files']))
 
         collection = self.md_mc.get_collection(database_name, collection_name)
         filelist = {'name': 'filelist',
                     'files': filenamelist}
         result = await collection.replace_one({'_id': prev_filelist['_id']}, filelist)
 
-        return result.acknowledged
+        return result.acknowledged, filenamelist
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self):
@@ -371,7 +371,7 @@ class FileNamesHandler(BaseMadDashHandler):
         if await self.get_filelist(database_name, collection_name):
             if not update:
                 raise tornado.web.HTTPError(409, reason=f"files already in collection, {collection_name}")
-            files_updated = await self.update_filelist(database_name, collection_name, filenamelist)
+            files_updated, filenamelist = await self.update_filelist(database_name, collection_name, filenamelist)
         else:
             collection = await self.md_mc.get_create_collection(database_name, collection_name)
             await collection.insert_one({'name': 'filelist',
