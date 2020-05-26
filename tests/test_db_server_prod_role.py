@@ -47,7 +47,7 @@ HISTOGRAMS = [{'bin_values': [9, 9, 15, 8, 10, 18, 18, 25, 26, 28, 36, 35, 36, 3
               ]
 
 
-class TestProductionClient:
+class TestDBServerProdRole:
     """Integration test the production client."""
 
     @staticmethod
@@ -80,7 +80,7 @@ class TestProductionClient:
             get_resp = await db_rc.request('GET', '/histogram', get_body)
             assert get_resp['histogram'] == histo
 
-        histograms = TestProductionClient._create_new_histograms()
+        histograms = TestDBServerProdRole._create_new_histograms()
         # use first histogram for updating values in all histograms
         new_bin_values = histograms[0]['bin_values']  # value will be incremented
         new_overflow = histograms[0]['overflow']  # value will be incremented
@@ -122,12 +122,12 @@ class TestProductionClient:
                          'histogram': newer_histo,
                          'update': True}
             post_resp = await db_rc.request('POST', '/histogram', post_body)
-            assert post_resp['histogram'] == TestProductionClient._get_updated_histo(
+            assert post_resp['histogram'] == TestDBServerProdRole._get_updated_histo(
                 orignial_histo, newer_histo)
             assert post_resp['updated']
 
             # GET
-            await assert_get(TestProductionClient._get_updated_histo(orignial_histo, newer_histo))
+            await assert_get(TestDBServerProdRole._get_updated_histo(orignial_histo, newer_histo))
 
         db_rc.close()
 
@@ -148,7 +148,7 @@ class TestProductionClient:
             assert get_resp['files'] == _files
 
         # 1. POST with no update flag
-        files = TestProductionClient._create_new_files()
+        files = TestDBServerProdRole._create_new_files()
         post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': files}
@@ -181,7 +181,7 @@ class TestProductionClient:
         await assert_get(files)
 
         # 4. POST with update flag and new files
-        new_files = TestProductionClient._create_new_files()
+        new_files = TestDBServerProdRole._create_new_files()
         post_body = {'database': 'test_histograms',
                      'collection': collection_name,
                      'files': new_files,

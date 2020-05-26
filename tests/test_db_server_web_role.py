@@ -15,7 +15,7 @@ def db_rc():
     return rc
 
 
-class TestWebClient:
+class TestDBServerWebRole:
     """Integration test the web client."""
 
     @pytest.mark.asyncio
