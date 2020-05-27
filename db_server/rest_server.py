@@ -245,8 +245,8 @@ class HistogramHandler(BaseMadDashHandler):
     def verify_histogram_schema(histogram):
         """Raise tornado errors if the histogram already exists or is not well structured."""
         schema = {'name': str,
-                  'xmax': int,
-                  'xmin': int,
+                  'xmax': (int, float),
+                  'xmin': (int, float),
                   'overflow': int,
                   'underflow': int,
                   'nan_count': int,
