@@ -7,26 +7,6 @@ import requests
 from rest_tools.client import RestClient
 
 
-def create_simprod_db_client(database_url='mongodb-simprod.icecube.wisc.edu',
-                             dbuser='DBadmin',
-                             password_path=os.path.expandvars('$HOME/.mongo')):
-    try:
-        from pymongo import MongoClient
-    except ImportError:
-        logging.critical("PyMongo not installed.")
-
-    if not os.path.exists(password_path):
-        logging.critical(f"Password file '{password_path}' not found.")
-
-    with open(password_path) as file:
-        password = urllib.parse.quote_plus(file.readline().strip())
-        uri = f"mongodb://{dbuser}:{password}@{database_url}"
-
-    client = MongoClient(uri)
-
-    return client
-
-
 def create_simprod_dbms_rest_connection(dbms_server_url='http://localhost:8080',
                                         token_server_url='http://localhost:8888/'):
     """Return REST Client connection object."""
@@ -40,81 +20,48 @@ def create_simprod_dbms_rest_connection(dbms_server_url='http://localhost:8080',
 
 def get_database_names(database_url):
     """Return the database names."""
-    # client = create_simprod_db_client(database_url)
-    # excludes = ('system.indexes', 'admin', 'local', 'simprod_filecatalog')
-    # database_names = [n for n in client.database_names() if n not in excludes]
-
     md_rc = create_simprod_dbms_rest_connection()
     databases = md_rc.request_seq('GET', '/databases/names')
 
     return sorted(databases['databases'])
 
 
-# def get_database(database_name, database_url):
-#     """Return the database."""
-#     client = create_simprod_db_client(database_url)
-#     database = client[database_name]
-#     return database
-
-
 def get_collection_names(database_name, database_url):
     """Return the database's collections."""
-    # database = get_database(database_name, database_url)
-    # collection_names = [n for n in database.collection_names() if n != 'system.indexes']
-
     md_rc = create_simprod_dbms_rest_connection()
     db_request_body = {'database': database_name}
-    collections = md_rc.request_seq('GET', f'/collections/names', db_request_body)
+    collections = md_rc.request_seq('GET', '/collections/names', db_request_body)
 
     return sorted(collections['collections'])
 
 
-# def get_collection(collection_name, database_name, database_url):
-#     """Return the collection."""
-#     client = create_simprod_db_client(database_url)
-#     database = client[database_name]
-#     collection = database[collection_name]
-#     return collection
-
-
 def get_histogram_names(collection_name, database_name, database_url):
     """Return the histograms names in the collection."""
-    # collection = get_collection(collection_name, database_name, database_url)
-    # cursor = collection.find()
-    # histogram_names = [d['name'] for d in cursor if d['name'] != 'filelist']
-
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
-    histograms = md_rc.request_seq('GET', f'/collections/histograms/names', coll_request_body)
+    histograms = md_rc.request_seq('GET', '/collections/histograms/names', coll_request_body)
 
     return sorted(histograms['histograms'])
 
 
 def get_histograms(collection_name, database_name, database_url):
     """Return the histograms from the collection."""
-    # collection = get_collection(collection_name, database_name, database_url)
-    # cursor = collection.find({})
-    # histograms = [d for d in cursor if d['name'] != 'filelist']
-
     md_rc = create_simprod_dbms_rest_connection()
     coll_histos_request_body = {'database': database_name,
                                 'collection': collection_name}
-    histograms = md_rc.request_seq('GET', f'/collections/histograms', coll_histos_request_body)
+    histograms = md_rc.request_seq('GET', '/collections/histograms', coll_histos_request_body)
 
     return histograms['histograms']
 
 
 def get_histogram(histogram_name, collection_name, database_name, database_url):
     """Return the histogram."""
-    # collection = get_collection(collection_name, database_name, database_url)
-    # histogram = collection.find_one({'name': histogram_name})
-
     md_rc = create_simprod_dbms_rest_connection()
     histo_request_body = {'database': database_name,
                           'collection': collection_name,
                           'name': histogram_name}
     try:
-        histogram = md_rc.request_seq('GET', f'/histogram', histo_request_body)
+        histogram = md_rc.request_seq('GET', '/histogram', histo_request_body)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 400:
             return None
@@ -124,11 +71,8 @@ def get_histogram(histogram_name, collection_name, database_name, database_url):
 
 def get_filelist(collection_name, database_name, database_url):
     """Return the filenames in the filelist from the collection."""
-    # collection = get_collection(collection_name, database_name, database_url)
-    # filelist = collection.find_one({'name': 'filelist'})['files']
-
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
-    filelist = md_rc.request_seq('GET', f'/files/names', coll_request_body)
+    filelist = md_rc.request_seq('GET', '/files/names', coll_request_body)
 
     return filelist['files']
