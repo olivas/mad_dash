@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Tools for converting I3 histograms to plotly Bar graphs"""
-import plotly.graph_objs as go
+"""Tools for converting I3 histograms to plotly Bar graphs."""
+
+from typing import List
+
+import plotly.graph_objs as go  # type: ignore
 
 
-def n_histograms_to_plotly(histograms, title=None, log=False):
-    """
-    Return a plotly Bar graph object with a n overlapped histograms.
+def n_histograms_to_plotly(histograms: List[dict], title: str = None, log: bool = False) -> go.Figure:
+    """Return a plotly Bar graph object with a n overlapped histograms.
 
     This function converts a histogram assuming the following
     dictionary structure
     "name" : String that's the name of the histograms
     "xmin" : Minimum x-value.
-    "xmax" : Maxium x-value.
+    "xmax" : Maximum x-value.
     "overflow" : Number of counts >= xmax
     "underflow" : Number of counters < xmin
     "nan_count" : Number of NaN entries
@@ -46,6 +48,6 @@ def n_histograms_to_plotly(histograms, title=None, log=False):
     return go.Figure(data=data, layout=layout)
 
 
-def histogram_to_plotly(histogram, title=None, log=False):
+def histogram_to_plotly(histogram: dict, title: str = None, log: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with one histogram."""
     return n_histograms_to_plotly([histogram], title, log)
