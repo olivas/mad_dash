@@ -30,38 +30,37 @@ def layout() -> html.Div:
                       ],
                      style=CENTERED_100),
 
-            html.Div([html.Div([
-                html.Div(
-                    [
-                        html.Label(id='filelist-message-tab1',
-                                   style=STAT_NUMBER),
-                        html.Label('I3Files',
-                                   style=STAT_LABEL)
-                    ],
-                    className='three columns',
-                    style=CENTERED_30),
-                html.Div(
-                    [
-                        html.Label(id='n-histogram-message-tab1',
-                                   style=STAT_NUMBER),
-                        html.Label('Histograms',
-                                   style=STAT_LABEL)
-                    ],
-                    className='three columns',
-                    style=CENTERED_30),
-                html.Div(
-                    [
-                        html.Label(id='n-empty-histograms-message-tab1',
-                                   style=STAT_NUMBER),
-                        html.Label('Empty Histograms',
-                                   style=STAT_LABEL)
-                    ],
-                    className='three columns',
-                    style=CENTERED_30),
-            ],
-                style={'margin-left': '2%'}),
-            ],
-                style={'margin-top': '3%', 'margin-left': '3%', 'margin-bottom': '9%'}),
+            html.Div(
+                children=[
+                    html.Div(
+                        [
+                            html.Label(id='filelist-message-tab1',
+                                       style=STAT_NUMBER),
+                            html.Label('I3Files',
+                                       style=STAT_LABEL)
+                        ],
+                        className='three columns',
+                        style=CENTERED_30),
+                    html.Div(
+                        [
+                            html.Label(id='n-histogram-message-tab1',
+                                       style=STAT_NUMBER),
+                            html.Label('Histograms',
+                                       style=STAT_LABEL)
+                        ],
+                        className='three columns',
+                        style=CENTERED_30),
+                    html.Div(
+                        [
+                            html.Label(id='n-empty-histograms-message-tab1',
+                                       style=STAT_NUMBER),
+                            html.Label('Empty Histograms',
+                                       style=STAT_LABEL)
+                        ],
+                        className='three columns',
+                        style=CENTERED_30),
+                ],
+                style={'margin-top': '3%', 'margin-bottom': '9%'}),
 
             html.Hr(),
             html.Div([html.H3('Histogram'),
