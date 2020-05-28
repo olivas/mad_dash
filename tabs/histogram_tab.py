@@ -9,7 +9,7 @@ import plotly.graph_objs as go  # type: ignore
 from application import app
 from dash.dependencies import Input, Output  # type: ignore
 from histogram_converter import histogram_to_plotly
-from styles import CENTERED_100, NUMBER, WIDTH_30, WIDTH_45
+from styles import CENTERED_30, CENTERED_100, STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45
 
 
 def layout() -> html.Div:
@@ -18,7 +18,7 @@ def layout() -> html.Div:
         children=[
             html.Div([html.Div([html.H5('Database'),
                                 dcc.Dropdown(id='database-name-dropdown-tab1',
-                                             value='simprod_histograms',
+                                             value=_get_default_database(),
                                              options=get_database_name_options())],
                                className='two columns',
                                style=WIDTH_45),
@@ -30,40 +30,38 @@ def layout() -> html.Div:
                       ],
                      style=CENTERED_100),
 
-            html.Div([html.H5('Collection Stats'),
-                      html.Div([
-                          html.Div(
-                              [
-                                  html.Label(id='filelist-message-tab1',
-                                             style=NUMBER),
-                                  html.Label('I3Files', style={
-                                             'fontSize': 20})
-                              ],
-                              className='three columns',
-                              style=WIDTH_30),
-                          html.Div(
-                              [
-                                  html.Label(id='n-histogram-message-tab1',
-                                             style=NUMBER, className='two columns'),
-                                  html.Label('Histograms', style={
-                                             'fontSize': 20})
-                              ],
-                              className='three columns',
-                              style=WIDTH_30),
-                          html.Div(
-                              [
-                                  html.Label(id='n-empty-histograms-message-tab1',
-                                             style=NUMBER),
-                                  html.Label('Empty Histograms', style={
-                                             'fontSize': 20})
-                              ],
-                              className='three columns',
-                              style=WIDTH_30),
-
-                      ],
+            html.Div([html.Div([
+                html.Div(
+                    [
+                        html.Label(id='filelist-message-tab1',
+                                   style=STAT_NUMBER),
+                        html.Label('I3Files',
+                                   style=STAT_LABEL)
+                    ],
+                    className='three columns',
+                    style=CENTERED_30),
+                html.Div(
+                    [
+                        html.Label(id='n-histogram-message-tab1',
+                                   style=STAT_NUMBER),
+                        html.Label('Histograms',
+                                   style=STAT_LABEL)
+                    ],
+                    className='three columns',
+                    style=CENTERED_30),
+                html.Div(
+                    [
+                        html.Label(id='n-empty-histograms-message-tab1',
+                                   style=STAT_NUMBER),
+                        html.Label('Empty Histograms',
+                                   style=STAT_LABEL)
+                    ],
+                    className='three columns',
+                    style=CENTERED_30),
+            ],
                 style={'margin-left': '2%'}),
             ],
-                style={'margin-top': '2%', 'margin-left': '3%', 'margin-bottom': '10%'}),
+                style={'margin-top': '3%', 'margin-left': '3%', 'margin-bottom': '9%'}),
 
             html.Hr(),
             html.Div([html.H3('Histogram'),
@@ -119,6 +117,12 @@ def layout() -> html.Div:
                                className='row', style=CENTERED_100)
                       ])
         ])
+
+
+def _get_default_database():
+    if len(get_database_name_options()) == 1:
+        return get_database_name_options()[0]['label']
+    return ''
 
 
 def get_database_name_options() -> List[Dict[str, str]]:

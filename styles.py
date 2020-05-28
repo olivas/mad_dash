@@ -12,7 +12,14 @@ WIDTH_45 = {
 }
 
 WIDTH_30 = {
-    'width': '30%'
+    'width': '30%',
+}
+
+CENTERED_30 = {
+    'width': '30%',
+    'display': 'flex',
+    'align-items': 'center',
+    'justify-content': 'center'
 }
 
 CONTENT_STYLE = {
@@ -24,12 +31,18 @@ CONTENT_STYLE = {
 }
 
 #
-NUMBER = {
+STAT_NUMBER = {
     'font-family': 'monospace',
-    'font-weight': 'bold',
-    'fontSize': 30,
+    #'font-weight': 'bold',
+    'fontSize': 25,
     'text-align': 'right',
-    'width': '20%'
+    'display': 'inline-block',
+    'padding-right': '4%'
+}
+
+STAT_LABEL = {
+    'fontSize': 20,
+    'display': 'inline-block'
 }
 
 # Styles for Tabs
