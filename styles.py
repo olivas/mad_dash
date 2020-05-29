@@ -30,10 +30,17 @@ CONTENT_STYLE = {
     'padding-right': '2%',
 }
 
-#
+# Hr
+
+SHORT_HR = {
+    'margin-left': '15%',
+    'margin-right': '15%'
+}
+
+# Stats
+
 STAT_NUMBER = {
     'font-family': 'monospace',
-    #'font-weight': 'bold',
     'fontSize': 25,
     'text-align': 'right',
     'display': 'inline-block',

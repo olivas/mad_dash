@@ -9,7 +9,7 @@ import plotly.graph_objs as go  # type: ignore
 from application import app
 from dash.dependencies import Input, Output  # type: ignore
 from histogram_converter import histogram_to_plotly
-from styles import CENTERED_30, CENTERED_100, STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45
+from styles import CENTERED_30, CENTERED_100, SHORT_HR, STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45
 
 
 def layout() -> html.Div:
@@ -34,27 +34,27 @@ def layout() -> html.Div:
                 children=[
                     html.Div(
                         [
-                            html.Label(id='filelist-message-tab1',
+                            html.Label(id='files-number-tab1',
                                        style=STAT_NUMBER),
-                            html.Label('I3Files',
+                            html.Label(id='files-label-tab1',
                                        style=STAT_LABEL)
                         ],
                         className='three columns',
                         style=CENTERED_30),
                     html.Div(
                         [
-                            html.Label(id='n-histogram-message-tab1',
+                            html.Label(id='n-histograms-number-tab1',
                                        style=STAT_NUMBER),
-                            html.Label('Histograms',
+                            html.Label(id='n-histograms-label-tab1',
                                        style=STAT_LABEL)
                         ],
                         className='three columns',
                         style=CENTERED_30),
                     html.Div(
                         [
-                            html.Label(id='n-empty-histograms-message-tab1',
+                            html.Label(id='n-empty-histograms-number-tab1',
                                        style=STAT_NUMBER),
-                            html.Label('Empty Histograms',
+                            html.Label(id='n-empty-histograms-label-tab1',
                                        style=STAT_LABEL)
                         ],
                         className='three columns',
@@ -93,6 +93,7 @@ def layout() -> html.Div:
                                          style=WIDTH_30)],
                                className='row',
                                style=CENTERED_100),
+                      html.Hr(style=SHORT_HR),
                       html.Div([html.Div([dcc.Graph(id='two-one')],
                                          className='three columns',
                                          style=WIDTH_30),
@@ -104,6 +105,7 @@ def layout() -> html.Div:
                                          style=WIDTH_30)],
                                className='row',
                                style=CENTERED_100),
+                      html.Hr(style=SHORT_HR),
                       html.Div([html.Div([dcc.Graph(id='three-one')],
                                          className='three columns',
                                          style=WIDTH_30),
@@ -116,6 +118,10 @@ def layout() -> html.Div:
                                className='row', style=CENTERED_100)
                       ])
         ])
+
+
+# --------------------------------------------------------------------------------------------------
+# Database & Collection
 
 
 def _get_default_database():
@@ -138,38 +144,65 @@ def update_collection_options(database_name: str) -> List[Dict[str, str]]:
     return [{'label': name, 'value': name} for name in collection_names]
 
 
-@app.callback(Output('filelist-message-tab1', 'children'),
+# --------------------------------------------------------------------------------------------------
+# N I3Files
+
+
+@app.callback(Output('files-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')])
-def update_histogram_filelist_message(database_name: str, collection_name: str) -> str:
+def update_histogram_filelist_number(database_name: str, collection_name: str) -> str:
     """Return number of files in the collection."""
     if not collection_name:
         return ''
 
     filelist = db.get_filelist(collection_name, database_name)
 
-    i3_files_str = "I3File" if len(filelist) == 1 else "I3Files"
-    filelist_message = f"{len(filelist)} {i3_files_str}"
-
-    return f"{len(filelist)}"
+    return str(len(filelist))
 
 
-@app.callback(Output('n-histogram-message-tab1', 'children'),
+@app.callback(Output('files-label-tab1', 'children'),
+              [Input('files-number-tab1', 'children')])
+def update_histogram_filelist_label(files: str) -> str:
+    """Return label for number of files in the collection."""
+    if files == '1':
+        return 'I3File'
+    return 'I3Files'
+
+
+# --------------------------------------------------------------------------------------------------
+# N Histograms
+
+
+@app.callback(Output('n-histograms-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')])
-def update_n_histograms_message(database_name: str, collection_name: str) -> str:
+def update_n_histograms_number(database_name: str, collection_name: str) -> str:
     """Return number of histograms in the collection."""
     if not collection_name:
         return ''
 
     histogram_names = db.get_histogram_names(collection_name, database_name)
-    return f"{len(histogram_names)}"
+    return str(len(histogram_names))
 
 
-@app.callback(Output('n-empty-histograms-message-tab1', 'children'),
+@app.callback(Output('n-histograms-label-tab1', 'children'),
+              [Input('n-histograms-number-tab1', 'children')])
+def update_n_histograms_label(histos: str) -> str:
+    """Return label for number of histograms in the collection."""
+    if histos == '1':
+        return 'Histogram'
+    return 'Histograms'
+
+
+# --------------------------------------------------------------------------------------------------
+# N Empty Histograms
+
+
+@app.callback(Output('n-empty-histograms-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')])
-def update_n_empty_histograms_message(database_name: str, collection_name: str) -> str:
+def update_n_empty_histograms_number(database_name: str, collection_name: str) -> str:
     """Return number of empty histograms in the collection."""
     if not collection_name:
         return ''
@@ -178,7 +211,20 @@ def update_n_empty_histograms_message(database_name: str, collection_name: str) 
     non_empty_histograms = [h for h in histograms if any(h['bin_values'])]
     n_empty = len(histograms) - len(non_empty_histograms)
 
-    return f'{n_empty}'
+    return str(n_empty)
+
+
+@app.callback(Output('n-empty-histograms-label-tab1', 'children'),
+              [Input('n-empty-histograms-number-tab1', 'children')])
+def update_n_empty_histograms_label(empty_histos: str) -> str:
+    """Return label for number of empty histograms in the collection."""
+    if empty_histos == '1':
+        return 'Empty Histogram'
+    return 'Empty Histograms'
+
+
+# --------------------------------------------------------------------------------------------------
+# Histogram Dropdown
 
 
 @app.callback(Output('histogram-dropdown-tab1', 'options'),
@@ -205,6 +251,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
      Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_linear_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str) -> go.Figure:
+    """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
     return histogram_to_plotly(histogram)
 
@@ -215,11 +262,17 @@ def update_linear_histogram_dropdown(histogram_name: str, database_name: str, co
      Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_log_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str) -> go.Figure:
+    """Plot chosen histogram, as log."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return histogram_to_plotly(histogram, log=True)
+    return histogram_to_plotly(histogram, y_log=True)
 
 
-# NINE PLOTS #
+# --------------------------------------------------------------------------------------------------
+# Common Histograms
+
+def _plot_histogram(database_name: str, collection_name: str, histo_name: str) -> go.Figure:
+    histogram = db.get_histogram(histo_name, collection_name, database_name)
+    return histogram_to_plotly(histogram, title=histo_name, alert_no_data=True)
 
 
 @app.callback(
@@ -227,8 +280,8 @@ def update_log_histogram_dropdown(histogram_name: str, database_name: str, colle
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_one_one(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('PrimaryEnergy', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'PrimaryEnergy')
 
 
 @app.callback(
@@ -236,8 +289,8 @@ def update_default_histograms_one_one(database_name: str, collection_name: str) 
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_one_two(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('PrimaryZenith', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'PrimaryZenith')
 
 
 @app.callback(
@@ -245,8 +298,8 @@ def update_default_histograms_one_two(database_name: str, collection_name: str) 
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_one_three(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('PrimaryCosZenith', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'PrimaryCosZenith')
 
 
 @app.callback(
@@ -254,8 +307,8 @@ def update_default_histograms_one_three(database_name: str, collection_name: str
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_two_one(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('CascadeEnergy', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'CascadeEnergy')
 
 
 @app.callback(
@@ -263,8 +316,8 @@ def update_default_histograms_two_one(database_name: str, collection_name: str) 
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_two_two(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('PulseTime', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'PulseTime')
 
 
 @app.callback(
@@ -272,8 +325,8 @@ def update_default_histograms_two_two(database_name: str, collection_name: str) 
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_two_three(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('SecondaryMultiplicity', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'SecondaryMultiplicity')
 
 
 @app.callback(
@@ -281,8 +334,8 @@ def update_default_histograms_two_three(database_name: str, collection_name: str
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_three_one(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('InIceDOMOccupancy', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'InIceDOMOccupancy')
 
 
 @app.callback(
@@ -290,8 +343,8 @@ def update_default_histograms_three_one(database_name: str, collection_name: str
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_three_two(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('InIceDOMLaunchTime', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'InIceDOMLaunchTime')
 
 
 @app.callback(
@@ -299,5 +352,5 @@ def update_default_histograms_three_two(database_name: str, collection_name: str
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value')])
 def update_default_histograms_three_three(database_name: str, collection_name: str) -> go.Figure:
-    histogram = db.get_histogram('LogQtot', collection_name, database_name)
-    return histogram_to_plotly(histogram)
+    """Plot a common histogram."""
+    return _plot_histogram(database_name, collection_name, 'LogQtot')
