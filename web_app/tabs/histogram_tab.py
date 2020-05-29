@@ -1,16 +1,17 @@
 """Dash tab for displaying histograms."""
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import dash_core_components as dcc  # type: ignore
 import dash_daq as daq  # type: ignore
 import dash_html_components as html  # type: ignore
-import db
 import plotly.graph_objs as go  # type: ignore
 from application import app
 from dash.dependencies import Input, Output  # type: ignore
-from histogram_converter import histogram_to_plotly
 from styles import CENTERED_30, CENTERED_100, SHORT_HR, STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45
+from utils import db, histogram_converter
+
+from .database_controls import get_database_name_options, get_default_database
 
 
 def layout() -> html.Div:
@@ -19,7 +20,7 @@ def layout() -> html.Div:
         children=[
             html.Div([html.Div([html.H6('Database'),
                                 dcc.Dropdown(id='database-name-dropdown-tab1',
-                                             value=_get_default_database(),
+                                             value=get_default_database(),
                                              options=get_database_name_options())],
                                className='two columns',
                                style=WIDTH_45),
@@ -121,19 +122,7 @@ def layout() -> html.Div:
 
 
 # --------------------------------------------------------------------------------------------------
-# Database & Collection
-
-
-def _get_default_database():
-    if len(get_database_name_options()) == 1:
-        return get_database_name_options()[0]['label']
-    return ''
-
-
-def get_database_name_options() -> List[Dict[str, str]]:
-    """Return the databases available for selection in the dropdown menu."""
-    database_names = db.get_database_names()
-    return [{'value': n, 'label': n} for n in database_names]
+# Collection
 
 
 @app.callback(Output('collection-dropdown-tab1', 'options'),
@@ -230,10 +219,10 @@ def update_n_empty_histograms_label(empty_histos: str) -> str:
 @app.callback(Output('histogram-dropdown-tab1', 'options'),
               [Input('database-name-dropdown-tab1', 'value'),
                Input('collection-dropdown-tab1', 'value')])
-def update_histogram_dropdown_options(database_name: str, collection_name: str) -> Union[None, List[Dict[str, str]]]:
+def update_histogram_dropdown_options(database_name: str, collection_name: str) -> List[Dict[str, str]]:
     """Return the histograms available for selection in the dropdown menu."""
     if not collection_name:
-        return None
+        return []
 
     histograms = db.get_histograms(collection_name, database_name)
 
@@ -254,7 +243,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
 def update_linear_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return histogram_to_plotly(histogram, y_log=log, no_title=True)
+    return histogram_converter.histogram_to_plotly(histogram, y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -263,7 +252,7 @@ def update_linear_histogram_dropdown(histogram_name: str, database_name: str, co
 
 def _plot_histogram(database_name: str, collection_name: str, histo_name: str) -> go.Figure:
     histogram = db.get_histogram(histo_name, collection_name, database_name)
-    return histogram_to_plotly(histogram, title=histo_name, alert_no_data=True)
+    return histogram_converter.histogram_to_plotly(histogram, title=histo_name, alert_no_data=True)
 
 
 @app.callback(
