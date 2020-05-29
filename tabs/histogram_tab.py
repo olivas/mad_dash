@@ -3,6 +3,7 @@
 from typing import Dict, List, Union
 
 import dash_core_components as dcc  # type: ignore
+import dash_daq as daq  # type: ignore
 import dash_html_components as html  # type: ignore
 import db
 import plotly.graph_objs as go  # type: ignore
@@ -70,12 +71,11 @@ def layout() -> html.Div:
                                          style=WIDTH_45)
                                 ],
                                style=CENTERED_100),
-                      html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab1'),
-                                         className='two columns',
-                                         style=WIDTH_45),
-                                html.Div(dcc.Graph(id='plot-log-histogram-tab1'),
-                                         className='two columns',
-                                         style=WIDTH_45)],
+                      html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab1')),
+                                daq.ToggleSwitch(id='toggle-log',
+                                                 value=False,
+                                                 label='log')
+                                ],
                                className='row',
                                style=CENTERED_100)
                       ]),
@@ -249,26 +249,17 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
     Output('plot-linear-histogram-tab1', 'figure'),
     [Input('histogram-dropdown-tab1', 'value'),
      Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_linear_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log', 'value')])
+def update_linear_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return histogram_to_plotly(histogram)
-
-
-@app.callback(
-    Output('plot-log-histogram-tab1', 'figure'),
-    [Input('histogram-dropdown-tab1', 'value'),
-     Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_log_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str) -> go.Figure:
-    """Plot chosen histogram, as log."""
-    histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return histogram_to_plotly(histogram, y_log=True)
+    return histogram_to_plotly(histogram, y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------
 # Common Histograms
+
 
 def _plot_histogram(database_name: str, collection_name: str, histo_name: str) -> go.Figure:
     histogram = db.get_histogram(histo_name, collection_name, database_name)

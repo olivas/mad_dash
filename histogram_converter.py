@@ -6,7 +6,7 @@ from typing import List
 import plotly.graph_objs as go  # type: ignore
 
 
-def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: bool = False, alert_no_data: bool = False) -> go.Figure:
+def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: bool = False, alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with a n overlapped histograms.
 
     This function converts a histogram assuming the following
@@ -30,11 +30,13 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
         return go.Figure(layout=layout)
 
     first = histograms[0]
-    if not title:
+    if (not title) and (not no_title):
         title = first['name']
 
     if y_log:
-        layout = go.Layout(title=f"{title} (Log)", yaxis={'type': 'log', 'autorange': True})
+        if title:
+            title = f"{title} (Log)"
+        layout = go.Layout(title=title, yaxis={'type': 'log', 'autorange': True})
     else:
         layout = go.Layout(title=title)
 
@@ -52,6 +54,6 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     return go.Figure(data=data, layout=layout)
 
 
-def histogram_to_plotly(histogram: dict, title: str = None, y_log: bool = False, alert_no_data: bool = False) -> go.Figure:
+def histogram_to_plotly(histogram: dict, title: str = None, y_log: bool = False, alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with one histogram."""
-    return n_histograms_to_plotly([histogram], title, y_log, alert_no_data)
+    return n_histograms_to_plotly([histogram], title, y_log, alert_no_data, no_title)
