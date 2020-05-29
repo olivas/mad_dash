@@ -17,13 +17,13 @@ def layout() -> html.Div:
     """Construct the HTML."""
     return html.Div(
         children=[
-            html.Div([html.Div([html.H5('Database'),
+            html.Div([html.Div([html.H6('Database'),
                                 dcc.Dropdown(id='database-name-dropdown-tab1',
                                              value=_get_default_database(),
                                              options=get_database_name_options())],
                                className='two columns',
                                style=WIDTH_45),
-                      html.Div([html.H5('Collection'),
+                      html.Div([html.H6('Collection'),
                                 dcc.Dropdown(id='collection-dropdown-tab1',
                                              value='-')],
                                className='two columns',

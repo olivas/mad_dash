@@ -22,34 +22,42 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     if not histograms or not isinstance(histograms, list):
         raise TypeError("`histogram` argument needs to be a list of n histograms.")
 
-    if not any(histograms):
-        if alert_no_data:
-            layout = go.Layout(title=title, xaxis={'title': '(no data)'})
-        else:
-            layout = go.Layout(title=title)
-        return go.Figure(layout=layout)
+    # Layout
+    margin = None
+    if not title:
+        if no_title:
+            title = None
+            margin = {'t': 50}
+        elif any(histograms):
+            title = histograms[0]['name']
 
-    first = histograms[0]
-    if (not title) and (not no_title):
-        title = first['name']
-
+    yaxis = None
     if y_log:
+        yaxis = {'type': 'log', 'autorange': True}
         if title:
             title = f"{title} (Log)"
-        layout = go.Layout(title=title, yaxis={'type': 'log', 'autorange': True})
-    else:
-        layout = go.Layout(title=title)
 
-    bin_width = (first['xmax'] - first['xmin']) / float(len(first['bin_values']))
-    x_values = [first['xmin'] + i * bin_width for i in range(len(first['bin_values']))]
-    text = f"nan({first['nan_count']}) under({first['underflow']}) over({first['overflow']})"
+    xaxis = None
+    if not any(histograms) and alert_no_data:
+        xaxis = {'title': '(no data)'}
 
-    data = []
-    for histo in histograms:
-        data.append(go.Bar(x=x_values,
-                           y=histo['bin_values'],
-                           text=text,
-                           name=histo['name']))
+    layout = go.Layout(title=title, yaxis=yaxis, xaxis=xaxis, margin=margin)
+
+    # Data
+    data = None
+    if any(histograms):
+        first = histograms[0]  # Use first histogram for common attributes
+
+        bin_width = (first['xmax'] - first['xmin']) / float(len(first['bin_values']))
+        x_values = [first['xmin'] + i * bin_width for i in range(len(first['bin_values']))]
+        text = f"nan({first['nan_count']}) under({first['underflow']}) over({first['overflow']})"
+
+        data = []
+        for histo in histograms:
+            data.append(go.Bar(x=x_values,
+                               y=histo['bin_values'],
+                               text=text,
+                               name=histo['name']))
 
     return go.Figure(data=data, layout=layout)
 
