@@ -19,7 +19,7 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     "nan_count" : Number of NaN entries
     "bin_values" : List of bin values (i.e. histogram contents)
     """
-    if not histograms or not isinstance(histograms, list):
+    if not isinstance(histograms, list):
         raise TypeError("`histogram` argument needs to be a list of n histograms.")
 
     # Layout
@@ -46,8 +46,20 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     # Data
     data = None
     if any(histograms):
+        # Use the name of the collection if all the histograms have the same name
+        h_name = ''
+        use_collection_names = False
+        for h in histograms:
+            if h_name == '':
+                h_name = h['name']
+            elif h_name != h['name']:
+                use_collection_names = False
+                break
+            use_collection_names = True
+
         first = histograms[0]  # Use first histogram for common attributes
 
+        # Data
         bin_width = (first['xmax'] - first['xmin']) / float(len(first['bin_values']))
         x_values = [first['xmin'] + i * bin_width for i in range(len(first['bin_values']))]
         text = f"nan({first['nan_count']}) under({first['underflow']}) over({first['overflow']})"
@@ -57,7 +69,7 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
             data.append(go.Bar(x=x_values,
                                y=histo['bin_values'],
                                text=text,
-                               name=histo['name']))
+                               name=histo['name'] if not use_collection_names else histo['collection']))
 
     return go.Figure(data=data, layout=layout)
 

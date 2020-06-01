@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from copy import copy
-#from statistics.compare import compare
+# from statistics.compare import compare
 from typing import Dict, List
 
 import dash_core_components as dcc  # type: ignore
+import dash_daq as daq  # type: ignore
 import dash_html_components as html  # type: ignore
 import plotly.graph_objs as go  # type: ignore
 from dash.dependencies import Input, Output, State
@@ -65,8 +66,8 @@ def layout() -> html.Div:
         html.Hr(),
 
         html.Div([html.H6('Collections'),
-                  dcc.Dropdown(id='collection-dropdown-lhs-tab2'),
-                  dcc.Dropdown(id='collection-dropdown-rhs-tab2'),
+                  dcc.Dropdown(id='collections-dropdown-tab2',
+                               multi=True)
                   ]),
 
         html.Hr(),
@@ -76,13 +77,13 @@ def layout() -> html.Div:
                                      style=WIDTH_45)],
                            style=CENTERED_100),
 
-                  html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab2'),
-                                     className='two columns',
-                                     style=WIDTH_45),
-                            html.Div(dcc.Graph(id='plot-log-histogram-tab2'),
-                                     className='two columns',
-                                     style=WIDTH_45)],
-                           className='row'),
+                  html.Div([html.Div(dcc.Graph(id='plot-histogram-tab2')),
+                            daq.ToggleSwitch(id='toggle-log',
+                                             value=False,
+                                             label='log')
+                            ],
+                           className='row',
+                           style=CENTERED_100),
                   html.Hr(style=SHORT_HR),
                   html.Div([html.Div(dcc.Graph(id='plot-histogram-ratio-tab2'),
                                      className='two columns',
@@ -108,15 +109,9 @@ def _collection_options(database_name: str) -> List[Dict[str, str]]:
     return options
 
 
-@app.callback(Output('collection-dropdown-lhs-tab2', 'options'),
+@app.callback(Output('collections-dropdown-tab2', 'options'),
               [Input('database-name-dropdown-tab2', 'value')])
 def set_lhs_collection_options(database_name: str) -> List[Dict[str, str]]:
-    return _collection_options(database_name)
-
-
-@app.callback(Output('collection-dropdown-rhs-tab2', 'options'),
-              [Input('database-name-dropdown-tab2', 'value')])
-def set_rhs_collection_options(database_name: str) -> List[Dict[str, str]]:
     return _collection_options(database_name)
 
 
@@ -126,15 +121,15 @@ def set_rhs_collection_options(database_name: str) -> List[Dict[str, str]]:
 
 @app.callback(Output('histogram-dropdown-tab2', 'options'),
               [Input('database-name-dropdown-tab2', 'value'),
-               Input('collection-dropdown-lhs-tab2', 'value'),
-               Input('collection-dropdown-rhs-tab2', 'value')])
-def update_histogram_dropdown_options(database_name: str, lhs_collection_name: str, rhs_collection_name: str) -> List[Dict[str, str]]:
+               Input('collections-dropdown-tab2', 'value')])
+def update_histogram_dropdown_options(database_name: str, collection_names: List[str]) -> List[Dict[str, str]]:
+    if not collection_names:
+        collection_names = []
 
-    rhs_histogram_names = db.get_histogram_names(lhs_collection_name, database_name)
-    lhs_histogram_names = db.get_histogram_names(rhs_collection_name, database_name)
+    all_histogram_names = [db.get_histogram_names(c, database_name) for c in collection_names]
 
     # get common histogram names
-    histos = [set(names) for names in [rhs_histogram_names, lhs_histogram_names] if names]
+    histos = [set(names) for names in all_histogram_names if names]
     if not any(histos):
         return []
     histogram_names = sorted(set.intersection(*histos))
@@ -143,67 +138,61 @@ def update_histogram_dropdown_options(database_name: str, lhs_collection_name: s
 
 
 @app.callback(
-    Output('plot-linear-histogram-tab2', 'figure'),
-    [Input('histogram-dropdown-tab2', 'value')],
+    Output('plot-histogram-tab2', 'figure'),
+    [Input('histogram-dropdown-tab2', 'value'),
+     Input('toggle-log', 'value')],
     [State('database-name-dropdown-tab2', 'value'),
-     State('collection-dropdown-lhs-tab2', 'value'),
-     State('collection-dropdown-rhs-tab2', 'value')])
-def update_linear_histogram_dropdown(histogram_name: str, database_name: str, lhs_collection_name: str, rhs_collection_name: str) -> go.Figure:
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name)
+     State('collections-dropdown-tab2', 'value')])
+def update_linear_histogram_dropdown(histogram_name: str, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
+    if not collection_names:
+        collection_names = []
 
-    return histogram_converter.n_histograms_to_plotly([lhs_histogram, rhs_histogram])
+    all_histograms = [db.get_histogram(histogram_name, c, database_name) for c in collection_names]
 
-
-@app.callback(
-    Output('plot-log-histogram-tab2', 'figure'),
-    [Input('histogram-dropdown-tab2', 'value')],
-    [State('database-name-dropdown-tab2', 'value'),
-     State('collection-dropdown-lhs-tab2', 'value'),
-     State('collection-dropdown-rhs-tab2', 'value')])
-def update_log_histogram_dropdown(histogram_name: str, database_name: str, lhs_collection_name: str, rhs_collection_name: str) -> go.Figure:
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name)
-
-    return histogram_converter.n_histograms_to_plotly([lhs_histogram, rhs_histogram], y_log=True)
+    return histogram_converter.n_histograms_to_plotly(all_histograms, y_log=log, no_title=True)
 
 
-@app.callback(
-    Output('plot-histogram-ratio-tab2', 'figure'),
-    [Input('histogram-dropdown-tab2', 'value')],
-    [State('database-name-dropdown-tab2', 'value'),
-     State('collection-dropdown-lhs-tab2', 'value'),
-     State('collection-dropdown-rhs-tab2', 'value')])
-def update_ratio_histogram(histogram_name: str, database_name: str, lhs_collection_name: str, rhs_collection_name: str) -> go.Figure:
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name)
+# @app.callback(
+#     Output('plot-histogram-ratio-tab2', 'figure'),
+#     [Input('histogram-dropdown-tab2', 'value')],
+#     [State('database-name-dropdown-tab2', 'value'),
+#      State('collections-dropdown-tab2', 'value')])
+# def update_ratio_histogram(histogram_name: str, database_name: str, collection_names: List[str]) -> go.Figure:
+#     if not collection_names:
+#         return go.Figure()
 
-    scale_to_match(lhs_histogram, rhs_histogram)
+# all_histograms = [db.get_histogram(histogram_name, c, database_name) for
+# c in collection_names]
 
-    ratio_histogram = copy(lhs_histogram)
-    for idx, bv in enumerate(rhs_histogram['bin_values']):
-        ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
+#     scale_to_match(all_histograms)
 
-    return histogram_converter.histogram_to_plotly(ratio_histogram, title="Scaled to Match Ratio")
+#     ratio_histogram = copy(lhs_histogram)
+#     for idx, bv in enumerate(rhs_histogram['bin_values']):
+#         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
+
+#     return histogram_converter.histogram_to_plotly(ratio_histogram, title="Scaled to Match Ratio")
 
 
-@app.callback(
-    Output('plot-histogram-cdf-tab2', 'figure'),
-    [Input('histogram-dropdown-tab2', 'value')],
-    [State('database-name-dropdown-tab2', 'value'),
-     State('collection-dropdown-lhs-tab2', 'value'),
-     State('collection-dropdown-rhs-tab2', 'value')])
-def update_cdf_histogram(histogram_name: str, database_name: str, lhs_collection_name: str, rhs_collection_name: str) -> go.Figure:
-    lhs_histogram = db.get_histogram(histogram_name, lhs_collection_name, database_name)
-    rhs_histogram = db.get_histogram(histogram_name, rhs_collection_name, database_name)
+# @app.callback(
+#     Output('plot-histogram-cdf-tab2', 'figure'),
+#     [Input('histogram-dropdown-tab2', 'value')],
+#     [State('database-name-dropdown-tab2', 'value'),
+#      State('collections-dropdown-tab2', 'value')])
+# def update_cdf_histogram(histogram_name: str, database_name: str, collection_names: List[str]) -> go.Figure:
+#     if not collection_names:
+#         return go.Figure()
 
-    scale_to_match(lhs_histogram, rhs_histogram)
+#     lhs_histogram = db.get_histogram(histogram_name, collection_names[0], database_name)
+#     rhs_histogram = db.get_histogram(histogram_name, collection_names[1], database_name)
 
-    ratio_histogram = cdf(lhs_histogram)
-    for idx, bv in enumerate(cdf(rhs_histogram)['bin_values']):
-        ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
+#     scale_to_match(all_histograms)
 
-    return histogram_converter.histogram_to_plotly(ratio_histogram, title="Scaled to Match CDF Ratio")
+#     ratio_histogram = cdf(lhs_histogram)
+#     for idx, bv in enumerate(cdf(rhs_histogram)['bin_values']):
+#         ratio_histogram['bin_values'][idx] /= bv if bv > 0 else 1.
+
+# return histogram_converter.histogram_to_plotly(ratio_histogram,
+# title="Scaled to Match CDF Ratio")
 
 
 # --------------------------------------------------------------------------------------------------
@@ -212,43 +201,46 @@ def update_cdf_histogram(histogram_name: str, database_name: str, lhs_collection
 
 @app.callback(Output('collection-comparison-result-tab2', 'children'),
               [Input('database-name-dropdown-tab2', 'value'),
-               Input('collection-dropdown-lhs-tab2', 'value'),
-               Input('collection-dropdown-rhs-tab2', 'value')])
-def compare_collections(database_name: str, lhs_collection: str, rhs_collection: str) -> List[html.Tr]:
+               Input('collections-dropdown-tab2', 'value')])
+def compare_collections(database_name: str, collection_names: List[str]) -> List[html.Tr]:
+    if not collection_names:
+        collection_names = []
 
     print("compare_collections: Comparing...")
-
-    def extract_histograms(database_name: str, collection_name: str) -> Dict[str, str]:
-        histograms = db.get_histograms(collection_name, database_name)
-        return {h['name']: h for h in histograms} if histograms else dict()
-
-    lhs_histograms = extract_histograms(database_name, lhs_collection)
-    rhs_histograms = extract_histograms(database_name, rhs_collection)
-
-    results = dict()
-    for lhs_name, lhs_histogram in lhs_histograms.items():
-        if lhs_name not in rhs_histograms:
-            print("Histogram %s in LHS, but not RHS." % lhs_name)
-            continue
-        rhs_histogram = rhs_histograms[lhs_name]
-        results[lhs_name] = compare(lhs_histogram, rhs_histogram)
-
     headers = ['Histogram', 'Chi2', 'KS', 'AD', 'Result', 'Notes']
     table_elements = [html.Tr([html.Th(h) for h in headers])]
-    for name, result in results.items():
-        chi2_result = result['chisq']['pvalue'] if 'chisq' in result else '---'
-        KS_result = result['KS']['pvalue'] if 'KS' in result else '---'
-        AD_result = result['AD']['pvalue'] if 'AD' in result else '---'
-        pass_fail = 'PASS'
-        notes = 'N/A'
 
-        if 'chisq' not in result and 'KS' not in result and 'AD' not in result:
-            if len(result) == 1:
-                notes = list(result.keys())[0]
+    # def extract_histograms(database_name: str, collection_name: str) -> Dict[str, str]:
+    #     histograms = db.get_histograms(collection_name, database_name)
+    #     return {h['name']: h for h in histograms} if histograms else dict()
 
-        row_data = [name, str(chi2_result), KS_result, AD_result, pass_fail, notes]
-        row = html.Tr([html.Td(d) for d in row_data])
-        table_elements.append(row)
+    # lhs_histograms = extract_histograms(database_name, collection_names[0])
+    # rhs_histograms = extract_histograms(database_name, collection_names[1])
+
+    # results = dict()
+    # for lhs_name, lhs_histogram in lhs_histograms.items():
+    #     if lhs_name not in rhs_histograms:
+    #         print("Histogram %s in LHS, but not RHS." % lhs_name)
+    #         continue
+    #     rhs_histogram = rhs_histograms[lhs_name]
+    #     results[lhs_name] = compare(lhs_histogram, rhs_histogram)
+
+    # headers = ['Histogram', 'Chi2', 'KS', 'AD', 'Result', 'Notes']
+    # table_elements = [html.Tr([html.Th(h) for h in headers])]
+    # for name, result in results.items():
+    #     chi2_result = result['chisq']['pvalue'] if 'chisq' in result else '---'
+    #     KS_result = result['KS']['pvalue'] if 'KS' in result else '---'
+    #     AD_result = result['AD']['pvalue'] if 'AD' in result else '---'
+    #     pass_fail = 'PASS'
+    #     notes = 'N/A'
+
+    #     if 'chisq' not in result and 'KS' not in result and 'AD' not in result:
+    #         if len(result) == 1:
+    #             notes = list(result.keys())[0]
+
+    #     row_data = [name, str(chi2_result), KS_result, AD_result, pass_fail, notes]
+    #     row = html.Tr([html.Td(d) for d in row_data])
+    #     table_elements.append(row)
 
     print("compare_collections: Done.")
     return table_elements

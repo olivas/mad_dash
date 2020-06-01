@@ -73,7 +73,7 @@ def layout() -> html.Div:
                                          style=WIDTH_45)
                                 ],
                                style=CENTERED_100),
-                      html.Div([html.Div(dcc.Graph(id='plot-linear-histogram-tab1')),
+                      html.Div([html.Div(dcc.Graph(id='plot-histogram-tab1')),
                                 daq.ToggleSwitch(id='toggle-log',
                                                  value=False,
                                                  label='log')
@@ -236,7 +236,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
 
 
 @app.callback(
-    Output('plot-linear-histogram-tab1', 'figure'),
+    Output('plot-histogram-tab1', 'figure'),
     [Input('histogram-dropdown-tab1', 'value'),
      Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value'),
