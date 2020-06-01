@@ -27,7 +27,7 @@ def layout() -> html.Div:
                                style=WIDTH_45),
                       html.Div([html.H6('Collection'),
                                 dcc.Dropdown(id='collection-dropdown-tab1',
-                                             value='-')],
+                                             value='')],
                                className='two columns',
                                style=WIDTH_45)
                       ],
