@@ -1,15 +1,16 @@
 """Contains functions for querying the database(s)."""
+
 import logging
-import os
 from typing import List
 from urllib.parse import urljoin
 
 import requests
-from rest_tools.client import RestClient
+from rest_tools.client import RestClient  # type: ignore
+
+from ..config import dbms_server_url, token_server_url
 
 
-def create_simprod_dbms_rest_connection(dbms_server_url: str = 'http://localhost:8080',
-                                        token_server_url: str = 'http://localhost:8888/') -> RestClient:
+def create_simprod_dbms_rest_connection() -> RestClient:
     """Return REST Client connection object."""
     token_request_url = urljoin(token_server_url, 'token?scope=maddash:web')
 
@@ -19,11 +20,25 @@ def create_simprod_dbms_rest_connection(dbms_server_url: str = 'http://localhost
     return md_rc
 
 
+def _log(url, database="", collection="", histogram=""):
+    db_str = coll_str = histo_str = ''
+    if database:
+        db_str = f"(db: {database})"
+    if collection:
+        coll_str = f"(co: {collection})"
+    if histogram:
+        histo_str = f"(hi: {histogram})"
+
+    logging.info(f"DB REST Call: {url} {db_str} {coll_str} {histo_str}")
+
+
 def get_database_names() -> List[str]:
     """Return the database names."""
     md_rc = create_simprod_dbms_rest_connection()
-    databases = md_rc.request_seq('GET', '/databases/names')
+    url = '/databases/names'
+    databases = md_rc.request_seq('GET', url)
 
+    _log(url)
     return sorted(databases['databases'])
 
 
@@ -34,8 +49,10 @@ def get_collection_names(database_name: str) -> List[str]:
 
     md_rc = create_simprod_dbms_rest_connection()
     db_request_body = {'database': database_name}
-    collections = md_rc.request_seq('GET', '/collections/names', db_request_body)
+    url = '/collections/names'
+    collections = md_rc.request_seq('GET', url, db_request_body)
 
+    _log(url, database_name)
     return sorted(collections['collections'])
 
 
@@ -46,8 +63,10 @@ def get_histogram_names(collection_name: str, database_name: str) -> List[str]:
 
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
-    histograms = md_rc.request_seq('GET', '/collections/histograms/names', coll_request_body)
+    url = '/collections/histograms/names'
+    histograms = md_rc.request_seq('GET', url, coll_request_body)
 
+    _log(url, database_name, collection_name)
     return sorted(histograms['histograms'])
 
 
@@ -59,8 +78,10 @@ def get_histograms(collection_name: str, database_name: str) -> List[dict]:
     md_rc = create_simprod_dbms_rest_connection()
     coll_histos_request_body = {'database': database_name,
                                 'collection': collection_name}
-    histograms = md_rc.request_seq('GET', '/collections/histograms', coll_histos_request_body)
+    url = '/collections/histograms'
+    histograms = md_rc.request_seq('GET', url, coll_histos_request_body)
 
+    _log(url, database_name, collection_name)
     return histograms['histograms']
 
 
@@ -73,12 +94,14 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
     histo_request_body = {'database': database_name,
                           'collection': collection_name,
                           'name': histogram_name}
+    url = '/histogram'
     try:
-        histogram = md_rc.request_seq('GET', '/histogram', histo_request_body)
+        histogram = md_rc.request_seq('GET', url, histo_request_body)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 400:
             return dict()
 
+    _log(url, database_name, collection_name, histogram_name)
     return histogram['histogram']
 
 
@@ -89,6 +112,8 @@ def get_filelist(collection_name: str, database_name: str) -> List[str]:
 
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
-    filelist = md_rc.request_seq('GET', '/files/names', coll_request_body)
+    url = '/files/names'
+    filelist = md_rc.request_seq('GET', url, coll_request_body)
 
+    _log(url, database_name, collection_name)
     return filelist['files']
