@@ -36,10 +36,10 @@ def get_database_names() -> List[str]:
     """Return the database names."""
     md_rc = create_simprod_dbms_rest_connection()
     url = '/databases/names'
-    databases = md_rc.request_seq('GET', url)
+    response = md_rc.request_seq('GET', url)
 
     _log(url)
-    return sorted(databases['databases'])
+    return sorted(response['databases'])
 
 
 def get_collection_names(database_name: str) -> List[str]:
@@ -50,10 +50,10 @@ def get_collection_names(database_name: str) -> List[str]:
     md_rc = create_simprod_dbms_rest_connection()
     db_request_body = {'database': database_name}
     url = '/collections/names'
-    collections = md_rc.request_seq('GET', url, db_request_body)
+    response = md_rc.request_seq('GET', url, db_request_body)
 
     _log(url, database_name)
-    return sorted(collections['collections'])
+    return sorted(response['collections'])
 
 
 def get_histogram_names(collection_name: str, database_name: str) -> List[str]:
@@ -64,10 +64,10 @@ def get_histogram_names(collection_name: str, database_name: str) -> List[str]:
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
     url = '/collections/histograms/names'
-    histograms = md_rc.request_seq('GET', url, coll_request_body)
+    response = md_rc.request_seq('GET', url, coll_request_body)
 
     _log(url, database_name, collection_name)
-    return sorted(histograms['histograms'])
+    return sorted(response['histograms'])
 
 
 def get_histograms(collection_name: str, database_name: str) -> List[dict]:
@@ -79,10 +79,10 @@ def get_histograms(collection_name: str, database_name: str) -> List[dict]:
     coll_histos_request_body = {'database': database_name,
                                 'collection': collection_name}
     url = '/collections/histograms'
-    histograms = md_rc.request_seq('GET', url, coll_histos_request_body)
+    response = md_rc.request_seq('GET', url, coll_histos_request_body)
 
     _log(url, database_name, collection_name)
-    return histograms['histograms']
+    return response['histograms']
 
 
 def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> dict:
@@ -96,13 +96,15 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
                           'name': histogram_name}
     url = '/histogram'
     try:
-        histogram = md_rc.request_seq('GET', url, histo_request_body)
+        response = md_rc.request_seq('GET', url, histo_request_body)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 400:
             return dict()
 
     _log(url, database_name, collection_name, histogram_name)
-    return histogram['histogram']
+    histogram = response['histogram']
+    histogram['collection'] = collection_name
+    return histogram
 
 
 def get_filelist(collection_name: str, database_name: str) -> List[str]:
@@ -113,7 +115,7 @@ def get_filelist(collection_name: str, database_name: str) -> List[str]:
     md_rc = create_simprod_dbms_rest_connection()
     coll_request_body = {'database': database_name, 'collection': collection_name}
     url = '/files/names'
-    filelist = md_rc.request_seq('GET', url, coll_request_body)
+    response = md_rc.request_seq('GET', url, coll_request_body)
 
     _log(url, database_name, collection_name)
-    return filelist['files']
+    return response['files']
