@@ -6,11 +6,12 @@ import dash_core_components as dcc  # type: ignore
 import dash_daq as daq  # type: ignore
 import dash_html_components as html  # type: ignore
 import plotly.graph_objs as go  # type: ignore
-from application import app
 from dash.dependencies import Input, Output  # type: ignore
-from styles import CENTERED_30, CENTERED_100, SHORT_HR, STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45
-from utils import db, histogram_converter
 
+from ..config import app
+from ..styles import (CENTERED_30, CENTERED_100, SHORT_HR, STAT_LABEL, STAT_NUMBER, WIDTH_30,
+                      WIDTH_45)
+from ..utils import db, histogram_converter
 from .database_controls import get_database_name_options, get_default_database
 
 

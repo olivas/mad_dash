@@ -3,13 +3,13 @@
 
 import dash_core_components as dcc  # type: ignore
 import dash_html_components as html  # type: ignore
-import tabs.comparison_tab as comparison_tab  # type: ignore
-import tabs.histogram_tab as histogram_tab  # type: ignore
-from application import app
 from dash.dependencies import Input, Output  # type: ignore
-from styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
 
-server = app.server
+from .config import app
+from .styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
+from .tabs import comparison_tab, histogram_tab
+
+#server = app.server
 
 
 app.layout = html.Div(
