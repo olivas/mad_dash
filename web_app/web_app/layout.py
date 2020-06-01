@@ -9,9 +9,6 @@ from .config import app
 from .styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
 from .tabs import comparison_tab, histogram_tab
 
-#server = app.server
-
-
 app.layout = html.Div(
     children=[
         html.Label("Mad Dash", style={'fontSize': 60,
@@ -49,7 +46,3 @@ def render_content(tab: str) -> html.Div:
     }
 
     return layouts[tab]()
-
-
-if __name__ == '__main__':
-    app.run_server(debug=True)

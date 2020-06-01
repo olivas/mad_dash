@@ -19,7 +19,7 @@ def create_simprod_dbms_rest_connection(dbms_server_url: str = 'http://localhost
     return md_rc
 
 
-def get_database_names() -> List[dict]:
+def get_database_names() -> List[str]:
     """Return the database names."""
     md_rc = create_simprod_dbms_rest_connection()
     databases = md_rc.request_seq('GET', '/databases/names')

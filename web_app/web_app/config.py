@@ -1,5 +1,6 @@
+"""Config file."""
 
-import dash
+import dash  # type: ignore
 import flask
 
 app = dash.Dash(__name__, server=flask.Flask(__name__))
