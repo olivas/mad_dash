@@ -11,6 +11,11 @@ WIDTH_45 = {
     'width': '45%'
 }
 
+LEFT_45 = {
+    'width': '45%',
+    'float': 'left'
+}
+
 WIDTH_30 = {
     'width': '30%',
 }

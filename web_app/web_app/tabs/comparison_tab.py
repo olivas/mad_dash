@@ -105,7 +105,7 @@ def layout() -> html.Div:
 def _collection_options(database_name: str) -> List[Dict[str, str]]:
     collection_names = db.get_collection_names(database_name)
     options = [{'label': name, 'value': name} for name in collection_names]
-    print(options)
+
     return options
 
 

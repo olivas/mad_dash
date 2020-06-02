@@ -74,7 +74,7 @@ def layout() -> html.Div:
                                 ],
                                style=CENTERED_100),
                       html.Div([html.Div(dcc.Graph(id='plot-histogram-tab1')),
-                                daq.ToggleSwitch(id='toggle-log',
+                                daq.ToggleSwitch(id='toggle-log-tab1',
                                                  value=False,
                                                  label='log')
                                 ],
@@ -83,42 +83,53 @@ def layout() -> html.Div:
                       ]),
 
             html.Hr(),
-            html.Div([html.H3('Common Histograms'),
-                      html.Div([html.Div([dcc.Graph(id='one-one')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='one-two')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='one-three')],
-                                         className='three columns',
-                                         style=WIDTH_30)],
-                               className='row',
-                               style=CENTERED_100),
-                      html.Hr(style=SHORT_HR),
-                      html.Div([html.Div([dcc.Graph(id='two-one')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='two-two')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='two-three')],
-                                         className='three columns',
-                                         style=WIDTH_30)],
-                               className='row',
-                               style=CENTERED_100),
-                      html.Hr(style=SHORT_HR),
-                      html.Div([html.Div([dcc.Graph(id='three-one')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='three-two')],
-                                         className='three columns',
-                                         style=WIDTH_30),
-                                html.Div([dcc.Graph(id='three-three')],
-                                         className='three columns',
-                                         style=WIDTH_30)],
-                               className='row', style=CENTERED_100)
-                      ])
+            html.Div(
+                children=[
+                    html.Div([html.Div(html.H3('Common Histograms'),
+                                       className='two columns',
+                                       style=WIDTH_45),
+                              html.Div(daq.ToggleSwitch(id='toggle-log-common-tab1',
+                                                        value=False,
+                                                        label='log'),
+                                       className='two columns',
+                                       style={'float': 'right'})],
+                             className='row'),
+
+                    html.Div([html.Div([dcc.Graph(id='one-one')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='one-two')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='one-three')],
+                                       className='three columns',
+                                       style=WIDTH_30)],
+                             className='row',
+                             style=CENTERED_100),
+                    html.Hr(style=SHORT_HR),
+                    html.Div([html.Div([dcc.Graph(id='two-one')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='two-two')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='two-three')],
+                                       className='three columns',
+                                       style=WIDTH_30)],
+                             className='row',
+                             style=CENTERED_100),
+                    html.Hr(style=SHORT_HR),
+                    html.Div([html.Div([dcc.Graph(id='three-one')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='three-two')],
+                                       className='three columns',
+                                       style=WIDTH_30),
+                              html.Div([dcc.Graph(id='three-three')],
+                                       className='three columns',
+                                       style=WIDTH_30)],
+                             className='row', style=CENTERED_100)
+                ])
         ])
 
 
@@ -240,7 +251,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
     [Input('histogram-dropdown-tab1', 'value'),
      Input('database-name-dropdown-tab1', 'value'),
      Input('collection-dropdown-tab1', 'value'),
-     Input('toggle-log', 'value')])
+     Input('toggle-log-tab1', 'value')])
 def update_linear_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
@@ -251,87 +262,96 @@ def update_linear_histogram_dropdown(histogram_name: str, database_name: str, co
 # Common Histograms
 
 
-def _plot_histogram(database_name: str, collection_name: str, histo_name: str) -> go.Figure:
+def _plot_histogram(database_name: str, collection_name: str, histo_name: str, log: bool) -> go.Figure:
     histogram = db.get_histogram(histo_name, collection_name, database_name)
-    return histogram_converter.histogram_to_plotly(histogram, title=histo_name, alert_no_data=True)
+    return histogram_converter.histogram_to_plotly(histogram, title=histo_name, alert_no_data=True, y_log=log)
 
 
 @app.callback(
     Output('one-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_one_one(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_one_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryEnergy')
+    return _plot_histogram(database_name, collection_name, 'PrimaryEnergy', log)
 
 
 @app.callback(
     Output('one-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_one_two(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_one_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryZenith')
+    return _plot_histogram(database_name, collection_name, 'PrimaryZenith', log)
 
 
 @app.callback(
     Output('one-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_one_three(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_one_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryCosZenith')
+    return _plot_histogram(database_name, collection_name, 'PrimaryCosZenith', log)
 
 
 @app.callback(
     Output('two-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_two_one(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_two_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'CascadeEnergy')
+    return _plot_histogram(database_name, collection_name, 'CascadeEnergy', log)
 
 
 @app.callback(
     Output('two-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_two_two(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_two_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'PulseTime')
+    return _plot_histogram(database_name, collection_name, 'PulseTime', log)
 
 
 @app.callback(
     Output('two-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_two_three(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_two_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'SecondaryMultiplicity')
+    return _plot_histogram(database_name, collection_name, 'SecondaryMultiplicity', log)
 
 
 @app.callback(
     Output('three-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_three_one(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_three_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'InIceDOMOccupancy')
+    return _plot_histogram(database_name, collection_name, 'InIceDOMOccupancy', log)
 
 
 @app.callback(
     Output('three-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_three_two(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_three_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'InIceDOMLaunchTime')
+    return _plot_histogram(database_name, collection_name, 'InIceDOMLaunchTime', log)
 
 
 @app.callback(
     Output('three-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-dropdown-tab1', 'value')])
-def update_default_histograms_three_three(database_name: str, collection_name: str) -> go.Figure:
+     Input('collection-dropdown-tab1', 'value'),
+     Input('toggle-log-common-tab1', 'value')])
+def update_default_histograms_three_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a common histogram."""
-    return _plot_histogram(database_name, collection_name, 'LogQtot')
+    return _plot_histogram(database_name, collection_name, 'LogQtot', log)
