@@ -166,6 +166,8 @@ def update_histogram_filelist_number(database_name: str, collection_name: str) -
               [Input('files-number-tab1', 'children')])
 def update_histogram_filelist_label(files: str) -> str:
     """Return label for number of files in the collection."""
+    if not files:
+        return ''
     if files == '1':
         return 'I3File'
     return 'I3Files'
@@ -191,6 +193,8 @@ def update_n_histograms_number(database_name: str, collection_name: str) -> str:
               [Input('n-histograms-number-tab1', 'children')])
 def update_n_histograms_label(histos: str) -> str:
     """Return label for number of histograms in the collection."""
+    if not histos:
+        return ''
     if histos == '1':
         return 'Histogram'
     return 'Histograms'
@@ -219,6 +223,8 @@ def update_n_empty_histograms_number(database_name: str, collection_name: str) -
               [Input('n-empty-histograms-number-tab1', 'children')])
 def update_n_empty_histograms_label(empty_histos: str) -> str:
     """Return label for number of empty histograms in the collection."""
+    if not empty_histos:
+        return ''
     if empty_histos == '1':
         return 'Empty Histogram'
     return 'Empty Histograms'
