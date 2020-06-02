@@ -47,15 +47,7 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     data = None
     if any(histograms):
         # Use the name of the collection if all the histograms have the same name
-        h_name = ''
-        use_collection_names = False
-        for h in histograms:
-            if h_name == '':
-                h_name = h['name']
-            elif h_name != h['name']:
-                use_collection_names = False
-                break
-            use_collection_names = True
+        use_collection_names = len(set(h['name'] for h in histograms)) == 1
 
         first = histograms[0]  # Use first histogram for common attributes
 
