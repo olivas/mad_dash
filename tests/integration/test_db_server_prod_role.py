@@ -79,6 +79,7 @@ class TestDBServerProdRole:
                         'name': histo['name']}
             get_resp = await db_rc.request('GET', '/histogram', get_body)
             assert get_resp['histogram'] == histo
+            assert get_resp['history']
 
         histograms = TestDBServerProdRole._create_new_histograms()
         # use first histogram for updating values in all histograms
@@ -94,6 +95,7 @@ class TestDBServerProdRole:
                          'collection': 'TEST',
                          'histogram': orignial_histo}
             post_resp = await db_rc.request('POST', '/histogram', post_body)
+            assert post_resp['history']
             assert post_resp['histogram'] == orignial_histo
             assert not post_resp['updated']
 
@@ -125,6 +127,7 @@ class TestDBServerProdRole:
             assert post_resp['histogram'] == TestDBServerProdRole._get_updated_histo(
                 orignial_histo, newer_histo)
             assert post_resp['updated']
+            assert len(post_resp['history']) == 2
 
             # GET
             await assert_get(TestDBServerProdRole._get_updated_histo(orignial_histo, newer_histo))
@@ -146,6 +149,7 @@ class TestDBServerProdRole:
                         'collection': collection_name}
             get_resp = await db_rc.request('GET', '/files/names', get_body)
             assert get_resp['files'] == _files
+            assert get_resp['history']
 
         # 1. POST with no update flag
         files = TestDBServerProdRole._create_new_files()
@@ -154,6 +158,7 @@ class TestDBServerProdRole:
                      'files': files}
         post_resp = await db_rc.request('POST', '/files/names', post_body)
         assert post_resp['files'] == files
+        assert post_resp['history']
 
         # GET
         await assert_get(files)
@@ -176,6 +181,7 @@ class TestDBServerProdRole:
                      'update': True}
         post_resp = await db_rc.request('POST', '/files/names', post_body)
         assert post_resp['files'] == files
+        assert len(post_resp['history']) == 2
 
         # GET
         await assert_get(files)
@@ -188,6 +194,7 @@ class TestDBServerProdRole:
                      'update': True}
         post_resp = await db_rc.request('POST', '/files/names', post_body)
         assert post_resp['files'] == sorted(set(files) | set(new_files))
+        assert len(post_resp['history']) == 3
 
         # GET
         await assert_get(sorted(set(files) | set(new_files)))
