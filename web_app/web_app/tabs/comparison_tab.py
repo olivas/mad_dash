@@ -140,9 +140,9 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
 @app.callback(
     Output('plot-histogram-tab2', 'figure'),
     [Input('histogram-dropdown-tab2', 'value'),
-     Input('toggle-log-tab2', 'value')],
-    [State('database-name-dropdown-tab2', 'value'),
-     State('collections-dropdown-tab2', 'value')])
+     Input('toggle-log-tab2', 'value'),
+     Input('database-name-dropdown-tab2', 'value'),
+     Input('collections-dropdown-tab2', 'value')])
 def update_histogram_dropdown(histogram_name: str, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
     if not collection_names:
         collection_names = []
