@@ -78,7 +78,7 @@ def layout() -> html.Div:
                            style=CENTERED_100),
 
                   html.Div([html.Div(dcc.Graph(id='plot-histogram-tab2')),
-                            daq.ToggleSwitch(id='toggle-log',
+                            daq.ToggleSwitch(id='toggle-log-tab2',
                                              value=False,
                                              label='log')
                             ],
@@ -140,10 +140,10 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
 @app.callback(
     Output('plot-histogram-tab2', 'figure'),
     [Input('histogram-dropdown-tab2', 'value'),
-     Input('toggle-log', 'value')],
+     Input('toggle-log-tab2', 'value')],
     [State('database-name-dropdown-tab2', 'value'),
      State('collections-dropdown-tab2', 'value')])
-def update_linear_histogram_dropdown(histogram_name: str, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
+def update_histogram_dropdown(histogram_name: str, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
     if not collection_names:
         collection_names = []
 
