@@ -131,12 +131,12 @@ def compare_collections(database_name: str, collection_names: List[str]) -> List
 
     # def extract_histograms(database_name: str, collection_name: str) -> Dict[str, str]:
     #     histograms = db.get_histograms(collection_name, database_name)
-    #     return {h['name']: h for h in histograms} if histograms else dict()
+    #     return {h['name']: h for h in histograms} if histograms else {}
 
     # lhs_histograms = extract_histograms(database_name, collection_names[0])
     # rhs_histograms = extract_histograms(database_name, collection_names[1])
 
-    # results = dict()
+    # results = {}
     # for lhs_name, lhs_histogram in lhs_histograms.items():
     #     if lhs_name not in rhs_histograms:
     #         print("Histogram %s in LHS, but not RHS." % lhs_name)

@@ -88,7 +88,7 @@ def get_histograms(collection_name: str, database_name: str) -> List[dict]:
 def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> dict:
     """Return the histogram."""
     if not histogram_name or not collection_name or not database_name:
-        return dict()
+        return {}
 
     md_rc = create_simprod_dbms_rest_connection()
     histo_request_body = {'database': database_name,
@@ -99,7 +99,7 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
         response = md_rc.request_seq('GET', url, histo_request_body)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 400:
-            return dict()
+            return {}
 
     _log(url, database_name, collection_name, histogram_name)
     histogram = response['histogram']
