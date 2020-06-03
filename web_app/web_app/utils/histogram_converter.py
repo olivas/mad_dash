@@ -19,8 +19,11 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     "nan_count" : Number of NaN entries
     "bin_values" : List of bin values (i.e. histogram contents)
     """
-    if not isinstance(histograms, list):
-        raise TypeError("`histogram` argument needs to be a list of n histograms.")
+    if not (isinstance(histograms, list) and all(isinstance(h, dict) for h in histograms)):
+        raise TypeError("`histogram` argument needs to be a list of n histograms (dicts).")
+
+    def has_all_data(list_):
+        return any(list_) and all(list_)  # deal breakers: empty list, 1+ empty members
 
     # Layout
     margin = None
@@ -28,7 +31,7 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
         if no_title:
             title = None
             margin = {'t': 50}
-        elif any(histograms):
+        elif has_all_data(histograms):
             title = histograms[0]['name']
 
     yaxis = None
@@ -38,14 +41,14 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
             title = f"{title} (Log)"
 
     xaxis = None
-    if not any(histograms) and alert_no_data:
+    if (not has_all_data(histograms)) and alert_no_data:
         xaxis = {'title': '(no data)'}
 
     layout = go.Layout(title=title, yaxis=yaxis, xaxis=xaxis, margin=margin)
 
     # Data
     data = None
-    if any(histograms):
+    if has_all_data(histograms):
         # Use the name of the collection if all the histograms have the same name
         use_collection_names = len(set(h['name'] for h in histograms)) == 1
 
@@ -66,6 +69,6 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     return go.Figure(data=data, layout=layout)
 
 
-def histogram_to_plotly(histogram: dict, title: str = None, y_log: bool = False, alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
+def histogram_to_plotly(histogram: dict, title: str=None, y_log: bool=False, alert_no_data: bool=False, no_title: bool=False) -> go.Figure:
     """Return a plotly Bar graph object with one histogram."""
     return n_histograms_to_plotly([histogram], title, y_log, alert_no_data, no_title)
