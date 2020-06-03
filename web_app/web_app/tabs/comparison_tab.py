@@ -129,10 +129,10 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
     all_histogram_names = [db.get_histogram_names(c, database_name) for c in collection_names]
 
     # get common histogram names
-    histos = [set(names) for names in all_histogram_names if names]
-    if not any(histos):
+    sets_of_names = [set(names) for names in all_histogram_names]
+    if not any(sets_of_names):
         return []
-    histogram_names = sorted(set.intersection(*histos))
+    histogram_names = sorted(set.intersection(*sets_of_names))
 
     return [{'label': name, 'value': name} for name in histogram_names]
 
