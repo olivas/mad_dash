@@ -1,36 +1,14 @@
-"""Mad-Dash REST API server interface."""
+"""Routes handlers for the Mad-Dash REST API server interface."""
 
-import asyncio
-import logging
 import time
 from typing import Any, Dict, List, Tuple, Union
-from urllib.parse import quote_plus
 
 import tornado.web
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
 from rest_tools.client import json_decode  # type: ignore
-from rest_tools.server import (RestHandler, RestHandlerSetup, RestServer,  # type: ignore
-                               from_environment, handler)
+from rest_tools.server import RestHandler, handler  # type: ignore
 
-# -----------------------------------------------------------------------------
-
-
-AUTH_PREFIX = "maddash"
-
-EXPECTED_CONFIG = {
-    'MAD_DASH_AUTH_ALGORITHM': 'HS512',  # 'RS256',
-    'MAD_DASH_AUTH_ISSUER': 'http://localhost:8888',  # 'maddash',
-    'MAD_DASH_AUTH_SECRET': 'secret',
-    'MAD_DASH_MONGODB_AUTH_USER': '',  # None means required to specify
-    'MAD_DASH_MONGODB_AUTH_PASS': '',  # empty means no authentication required
-    'MAD_DASH_MONGODB_HOST': 'localhost',
-    'MAD_DASH_MONGODB_PORT': '27017',
-    'MAD_DASH_REST_HOST': 'localhost',
-    'MAD_DASH_REST_PORT': '8080',
-}
-
-EXCLUDE_DBS = ['system.indexes', 'production', 'local',
-               'simprod_filecatalog', 'config', 'token_service', 'admin']
+from .config import AUTH_PREFIX, EXCLUDE_DBS
 
 REMOVE_ID = {"_id": False}
 
@@ -426,67 +404,3 @@ class FileNamesHandler(BaseMadDashHandler):
 
 
 # -----------------------------------------------------------------------------
-
-
-def start(debug: bool = False) -> RestServer:
-    """Start a Mad Dash REST service."""
-    config = from_environment(EXPECTED_CONFIG)
-
-    for name in config:
-        logging.info(f"{name} = {config[name]}")
-
-    args = RestHandlerSetup({
-        'auth': {
-            'secret': config['MAD_DASH_AUTH_SECRET'],
-            'issuer': config['MAD_DASH_AUTH_ISSUER'],
-            'algorithm': config['MAD_DASH_AUTH_ALGORITHM'],
-        },
-        'debug': debug
-    })
-
-    # configure access to MongoDB as a backing store
-    mongo_user = quote_plus(config["MAD_DASH_MONGODB_AUTH_USER"])
-    mongo_pass = quote_plus(config["MAD_DASH_MONGODB_AUTH_PASS"])
-    mongo_host = config["MAD_DASH_MONGODB_HOST"]
-    mongo_port = int(config["MAD_DASH_MONGODB_PORT"])
-    mongodb_url = f"mongodb://{mongo_host}:{mongo_port}"
-    if mongo_user and mongo_pass:
-        mongodb_url = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}"
-
-    # ensure indexes
-    md_mc = MadDashMotorClient(MotorClient(mongodb_url))
-    asyncio.get_event_loop().run_until_complete(md_mc.ensure_all_databases_indexes())
-
-    args['motor_client'] = MotorClient(mongodb_url)
-
-    # configure REST routes
-    server = RestServer(debug=debug)
-    server.add_route(r'/$',
-                     MainHandler, args)
-    server.add_route(r'/databases/names$',
-                     DatabasesNamesHandler, args)  # get database names
-    server.add_route(r'/collections/names$',
-                     CollectionsNamesHandler, args)  # get collection names
-    server.add_route(r'/collections/histograms/names$',
-                     CollectionsHistogramsNamesHandler, args)  # get all histogram names in collection
-    server.add_route(r'/collections/histograms$',
-                     CollectionsHistogramsHandler, args)  # get all histogram objects in collection
-    server.add_route(r'/histogram$',
-                     HistogramHandler, args)  # get histogram object
-    server.add_route(r'/files/names$',
-                     FileNamesHandler, args)  # get file names
-
-    server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
-    return server
-
-
-def main() -> None:
-    """Configure logging and start a Mad Dash DB service."""
-    logging.basicConfig(level=logging.DEBUG)
-    start(debug=True)
-    loop = asyncio.get_event_loop()
-    loop.run_forever()
-
-
-if __name__ == '__main__':
-    main()
