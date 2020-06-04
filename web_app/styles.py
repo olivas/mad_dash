@@ -1,5 +1,9 @@
 """Common HTML styles."""
 
+HIDDEN = {
+    'visibility': 'hidden'
+}
+
 CENTERED_100 = {
     'width': '100%',
     'display': 'flex',

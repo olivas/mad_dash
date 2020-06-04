@@ -10,8 +10,8 @@ import plotly.graph_objs as go  # type: ignore
 from dash.dependencies import Input, Output, State  # type: ignore
 
 from ..config import app
-from ..styles import (CENTERED_30, CENTERED_100, SHORT_HR, STAT_LABEL, STAT_NUMBER, WIDTH_30,
-                      WIDTH_45)
+from ..styles import (CENTERED_30, CENTERED_100, HIDDEN, SHORT_HR, STAT_LABEL, STAT_NUMBER,
+                      WIDTH_30, WIDTH_45)
 from ..utils import db, histogram_converter
 from .database_controls import get_database_name_options, get_default_database
 
@@ -46,6 +46,7 @@ def layout() -> html.Div:
 
             html.Div(
                 id='collection-stats-tab1',
+                style=HIDDEN,  # toggled by callback
                 children=[
                     html.Div(
                         className='three columns',
@@ -241,7 +242,7 @@ def layout() -> html.Div:
 def hide_show_collection_stats(collection_name: str) -> dict:
     """Hide/show the collection stats div, depending on whether there is a collection selected."""
     if not collection_name:
-        return {'visibility': 'hidden'}
+        return HIDDEN
     return {'margin-top': '3%', 'margin-bottom': '9%'}
 
 
