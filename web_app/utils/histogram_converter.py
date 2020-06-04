@@ -26,11 +26,11 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
         return any(list_) and all(list_)  # deal breakers: empty list, 1+ empty members
 
     # Layout
-    margin = None
+    margin = {'l': 30, 'r': 30}
     if not title:
         if no_title:
             title = None
-            margin = {'t': 50}
+            margin['t'] = 50
         elif has_all_data(histograms):
             title = histograms[0]['name']
 
@@ -40,11 +40,14 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
         if title:
             title = f"{title} (Log)"
 
-    xaxis = None
-    if (not has_all_data(histograms)) and alert_no_data:
-        xaxis = {'title': '(no data)'}
+    xaxis = plot_bgcolor = None
+    if not has_all_data(histograms):
+        if alert_no_data:
+            xaxis = {'title': '(no data)'}
+        plot_bgcolor = '#E6E6E6'
 
-    layout = go.Layout(title=title, yaxis=yaxis, xaxis=xaxis, margin=margin)
+    layout = go.Layout(title=title, yaxis=yaxis, xaxis=xaxis,
+                       margin=margin, plot_bgcolor=plot_bgcolor)
 
     # Data
     data = None
@@ -69,6 +72,6 @@ def n_histograms_to_plotly(histograms: List[dict], title: str = None, y_log: boo
     return go.Figure(data=data, layout=layout)
 
 
-def histogram_to_plotly(histogram: dict, title: str=None, y_log: bool=False, alert_no_data: bool=False, no_title: bool=False) -> go.Figure:
+def histogram_to_plotly(histogram: dict, title: str = None, y_log: bool = False, alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with one histogram."""
     return n_histograms_to_plotly([histogram], title, y_log, alert_no_data, no_title)
