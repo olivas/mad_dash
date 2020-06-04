@@ -124,7 +124,7 @@ def layout() -> html.Div:
                         style=CENTERED_100,
                         children=[
                             html.Div(dcc.Graph(id='plot-histogram-tab1')),
-                            daq.BooleanSwitch(
+                            daq.BooleanSwitch(  # pylint: disable=E1101
                                 id='toggle-log-tab1',
                                 on=False,
                                 label='log')
@@ -148,7 +148,7 @@ def layout() -> html.Div:
                                 className='two columns',
                                 style=WIDTH_45,
                                 children=[
-                                    daq.BooleanSwitch(
+                                    daq.BooleanSwitch(  # pylint: disable=E1101
                                         id='toggle-log-common-tab1',
                                         on=False,
                                         label='log',
