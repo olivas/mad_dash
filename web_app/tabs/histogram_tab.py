@@ -20,133 +20,213 @@ def layout() -> html.Div:
     """Construct the HTML."""
     return html.Div(
         children=[
-            html.Div([html.Div([html.H6('Database'),
-                                dcc.Dropdown(id='database-name-dropdown-tab1',
-                                             value=get_default_database(),
-                                             options=get_database_name_options())],
-                               className='two columns',
-                               style=WIDTH_45),
-                      html.Div([html.H6('Collection'),
-                                dcc.Dropdown(id='collection-name-dropdown-tab1',
-                                             value='')],
-                               className='two columns',
-                               style=WIDTH_45)
-                      ],
-                     style=CENTERED_100),
-
             html.Div(
+                style=CENTERED_100,
                 children=[
                     html.Div(
-                        [
-                            html.Label(id='files-number-tab1',
-                                       style=STAT_NUMBER),
-                            html.Label(id='files-label-tab1',
-                                       style=STAT_LABEL),
-                            dbc.Button('view',
-                                       id='open-filelist-modal-tab1',
-                                       size='sm',
-                                       color='link',
-                                       style={'vertical-align': 'bottom'}),
+                        className='two columns',
+                        style=WIDTH_45,
+                        children=[
+                            html.H6('Database'),
+                            dcc.Dropdown(
+                                id='database-name-dropdown-tab1',
+                                value=get_default_database(),
+                                options=get_database_name_options())
+                        ]),
+                    html.Div(
+                        className='two columns',
+                        style=WIDTH_45,
+                        children=[
+                            html.H6('Collection'),
+                            dcc.Dropdown(
+                                id='collection-name-dropdown-tab1',
+                                value='')
+                        ])
+                ]),
+
+            html.Div(
+                id='collection-stats-tab1',
+                children=[
+                    html.Div(
+                        className='three columns',
+                        style=CENTERED_30,
+                        children=[
+                            html.Label(
+                                id='files-number-tab1',
+                                style=STAT_NUMBER),
+                            html.Label(
+                                id='files-label-tab1',
+                                style=STAT_LABEL),
+                            dbc.Button(
+                                'view',
+                                id='open-filelist-modal-tab1',
+                                size='sm',
+                                color='link',
+                                style={'vertical-align': 'bottom'}),
                             # Modal of I3Files
-                            dbc.Modal([dbc.ModalHeader(id='filelist-modal-header-tab1'),
-                                       dbc.ModalBody(dbc.ListGroup(id='filelist-list-tab1')),
-                                       dbc.ModalFooter(dbc.Button("Close",
-                                                                  id='close-filelist-modal-tab1',
-                                                                  className='ml-auto'))
-                                       ],
-                                      id='filelist-modal-tab1',
-                                      size='lg'),
-                        ],
-                        className='three columns',
-                        style=CENTERED_30),
+                            dbc.Modal(
+                                id='filelist-modal-tab1',
+                                size='lg',
+                                children=[
+                                    dbc.ModalHeader(id='filelist-modal-header-tab1'),
+                                    dbc.ModalBody(dbc.ListGroup(id='filelist-list-tab1')),
+                                    dbc.ModalFooter(
+                                        children=[
+                                            dbc.Button(
+                                                'Close',
+                                                id='close-filelist-modal-tab1',
+                                                className='ml-auto')
+                                        ])
+                                ]),
+                        ]),
                     html.Div(
-                        [
-                            html.Label(id='n-histograms-number-tab1',
-                                       style=STAT_NUMBER),
-                            html.Label(id='n-histograms-label-tab1',
-                                       style=STAT_LABEL)
-                        ],
                         className='three columns',
-                        style=CENTERED_30),
+                        style=CENTERED_30,
+                        children=[
+                            html.Label(
+                                id='n-histograms-number-tab1',
+                                style=STAT_NUMBER),
+                            html.Label(
+                                id='n-histograms-label-tab1',
+                                style=STAT_LABEL)
+                        ]),
                     html.Div(
-                        [
-                            html.Label(id='n-empty-histograms-number-tab1',
-                                       style=STAT_NUMBER),
-                            html.Label(id='n-empty-histograms-label-tab1',
-                                       style=STAT_LABEL)
-                        ],
                         className='three columns',
-                        style=CENTERED_30),
-                ],
-                id='collection-stats-tab1'),
-
-
+                        style=CENTERED_30,
+                        children=[
+                            html.Label(
+                                id='n-empty-histograms-number-tab1',
+                                style=STAT_NUMBER),
+                            html.Label(
+                                id='n-empty-histograms-label-tab1',
+                                style=STAT_LABEL)
+                        ]),
+                ]),
 
             html.Hr(),
-            html.Div([html.H3('Histogram'),
-                      html.Div([html.Div([dcc.Dropdown(id='histogram-dropdown-tab1',
-                                                       value='PrimaryEnergy'),
-                                          ],
-                                         style=WIDTH_45)
-                                ],
-                               style=CENTERED_100),
-                      html.Div([html.Div(dcc.Graph(id='plot-histogram-tab1')),
-                                daq.BooleanSwitch(id='toggle-log-tab1',
-                                                  on=False,
-                                                  label='log')
-                                ],
-                               className='row',
-                               style=CENTERED_100)
-                      ]),
 
-            html.Hr(),
             html.Div(
                 children=[
-                    html.Div([html.Div(html.H3('Common Histograms'),
-                                       className='two columns',
-                                       style=WIDTH_45),
-                              html.Div(daq.BooleanSwitch(id='toggle-log-common-tab1',
-                                                         on=False,
-                                                         label='log',
-                                                         style={'float': 'right'}),
-                                       className='two columns',
-                                       style=WIDTH_45)],
-                             className='row'),
+                    html.H3('Histogram'),
+                    html.Div(
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    dcc.Dropdown(
+                                        id='histogram-dropdown-tab1',
+                                        value='PrimaryEnergy')
+                                ])
+                        ]),
+                    html.Div(
+                        className='row',
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(dcc.Graph(id='plot-histogram-tab1')),
+                            daq.BooleanSwitch(
+                                id='toggle-log-tab1',
+                                on=False,
+                                label='log')
+                        ])
+                ]),
 
-                    html.Div([html.Div([dcc.Graph(id='one-one')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='one-two')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='one-three')],
-                                       className='three columns',
-                                       style=WIDTH_30)],
-                             className='row',
-                             style=CENTERED_100),
+            html.Hr(),
+
+            html.Div(
+                children=[
+                    html.Div(
+                        className='row',
+                        children=[
+                            html.Div(
+                                className='two columns',
+                                style=WIDTH_45,
+                                children=[
+                                    html.H3('Common Histograms')
+                                ]),
+                            html.Div(
+                                className='two columns',
+                                style=WIDTH_45,
+                                children=[
+                                    daq.BooleanSwitch(
+                                        id='toggle-log-common-tab1',
+                                        on=False,
+                                        label='log',
+                                        style={'float': 'right'})
+                                ])
+                        ]),
+
+                    html.Div(
+                        className='row',
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='one-one')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='one-two')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='one-three')
+                                ])
+                        ]),
                     html.Hr(style=SHORT_HR),
-                    html.Div([html.Div([dcc.Graph(id='two-one')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='two-two')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='two-three')],
-                                       className='three columns',
-                                       style=WIDTH_30)],
-                             className='row',
-                             style=CENTERED_100),
+                    html.Div(
+                        className='row',
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='two-one')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='two-two')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='two-three')
+                                ])
+                        ]),
                     html.Hr(style=SHORT_HR),
-                    html.Div([html.Div([dcc.Graph(id='three-one')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='three-two')],
-                                       className='three columns',
-                                       style=WIDTH_30),
-                              html.Div([dcc.Graph(id='three-three')],
-                                       className='three columns',
-                                       style=WIDTH_30)],
-                             className='row', style=CENTERED_100)
+                    html.Div(
+                        className='row',
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='three-one')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='three-two')
+                                ]),
+                            html.Div(
+                                className='three columns',
+                                style=WIDTH_30,
+                                children=[
+                                    dcc.Graph(id='three-three')
+                                ])
+                        ])
                 ])
         ])
 

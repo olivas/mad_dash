@@ -10,30 +10,35 @@ from .styles import CONTENT_STYLE, TAB_SELECTED_STYLE, TAB_STYLE, TABS_STYLE
 from .tabs import comparison_tab, histogram_tab
 
 app.layout = html.Div(
+    style={'padding-left': '5%', 'padding-right': '5%', 'backgroundColor': '#FFFFDA'},
     children=[
-        html.Label("Mad Dash", style={'fontSize': 60,
-                                      'font-family': 'serif',
-                                      'font-weight': '999'}),
+        html.Label(
+            style={'fontSize': 60, 'font-family': 'serif', 'font-weight': '999'},
+            children="Mad Dash"),
 
-        html.Div([dcc.Tabs(id='mad-dash-tabs', value='tab1',
-                           children=[
-                               dcc.Tab(label='Histograms',
-                                       value='tab1',
-                                       style=TAB_STYLE,
-                                       selected_style=TAB_SELECTED_STYLE),
-                               dcc.Tab(label='Comparisons',
-                                       value='tab2',
-                                       style=TAB_STYLE,
-                                       selected_style=TAB_SELECTED_STYLE),
-                           ],
-                           style=TABS_STYLE),
+        html.Div(
+            style={'backgroundColor': 'white'},
+            children=[
+                dcc.Tabs(
+                    id='mad-dash-tabs',
+                    value='tab1',
+                    style=TABS_STYLE,
+                    children=[
+                        dcc.Tab(
+                            label='Histograms',
+                            value='tab1',
+                            style=TAB_STYLE,
+                            selected_style=TAB_SELECTED_STYLE),
+                        dcc.Tab(
+                            label='Comparisons',
+                            value='tab2',
+                            style=TAB_STYLE,
+                            selected_style=TAB_SELECTED_STYLE)
+                    ]),
 
-                  html.Div(id='tab-content', style=CONTENT_STYLE)
-                  ],
-                 style={'backgroundColor': 'white'}),
-    ],
-    style={'padding-left': '5%', 'padding-right': '5%', 'backgroundColor': '#FFFFDA'}
-)
+                html.Div(id='tab-content', style=CONTENT_STYLE)
+            ]),
+    ])
 
 
 @app.callback(Output('tab-content', 'children'),

@@ -16,50 +16,77 @@ from .database_controls import get_database_name_options, get_default_database
 
 def layout() -> html.Div:
     """Construct the HTML."""
-    return html.Div([
+    return html.Div(
+        children=[
+            html.Div(
+                style=WIDTH_45,
+                children=[
+                    html.H6('Database'),
+                    dcc.Dropdown(
+                        id='database-name-dropdown-tab2',
+                        value=get_default_database(),
+                        options=get_database_name_options())
+                ]),
 
 
-        html.Div([html.H6('Database'),
-                  dcc.Dropdown(id='database-name-dropdown-tab2',
-                               value=get_default_database(),
-                               options=get_database_name_options())],
-                 style=WIDTH_45),
+            html.Hr(),
 
+            html.Div(
+                children=[
+                    html.H6('Collections'),
+                    dcc.Dropdown(
+                        id='collections-dropdown-tab2',
+                        multi=True)
+                ]),
 
-        html.Hr(),
+            html.Hr(),
 
-        html.Div([html.H6('Collections'),
-                  dcc.Dropdown(id='collections-dropdown-tab2',
-                               multi=True)
-                  ]),
+            html.Div(
+                children=[
+                    html.H3('Histogram Comparisons'),
+                    html.Div(
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(
+                                style=WIDTH_45,
+                                children=[
+                                    dcc.Dropdown(id='histogram-dropdown-tab2')
+                                ])
+                        ]),
 
-        html.Hr(),
+                    html.Div(
+                        className='row',
+                        style=CENTERED_100,
+                        children=[
+                            html.Div(dcc.Graph(id='plot-histogram-tab2')),
+                            daq.BooleanSwitch(
+                                id='toggle-log-tab2',
+                                on=False,
+                                label='log')
+                        ]),
+                    html.Hr(style=SHORT_HR),
+                    html.Div(
+                        className='row',
+                        children=[
+                            html.Div(
+                                className='two columns',
+                                style=WIDTH_45,
+                                children=[
+                                    dcc.Graph(id='plot-histogram-ratio-tab2')
+                                ]),
+                            html.Div(
+                                className='two columns',
+                                style=WIDTH_45,
+                                children=[
+                                    dcc.Graph(id='plot-histogram-cdf-tab2')
+                                ])
+                        ]),
+                ]),
 
-        html.Div([html.H3('Histogram Comparisons'),
-                  html.Div([html.Div([dcc.Dropdown(id='histogram-dropdown-tab2')],
-                                     style=WIDTH_45)],
-                           style=CENTERED_100),
+            html.Hr(),
 
-                  html.Div([html.Div(dcc.Graph(id='plot-histogram-tab2')),
-                            daq.BooleanSwitch(id='toggle-log-tab2',
-                                              on=False,
-                                              label='log')
-                            ],
-                           className='row',
-                           style=CENTERED_100),
-                  html.Hr(style=SHORT_HR),
-                  html.Div([html.Div(dcc.Graph(id='plot-histogram-ratio-tab2'),
-                                     className='two columns',
-                                     style=WIDTH_45),
-                            html.Div(dcc.Graph(id='plot-histogram-cdf-tab2'),
-                                     className='two columns',
-                                     style=WIDTH_45)],
-                           className='row'),
-                  ]),
-
-        html.Hr(),
-        html.Table(id='collection-comparison-result-tab2'),
-    ])
+            html.Table(id='collection-comparison-result-tab2'),
+        ])
 
 
 # --------------------------------------------------------------------------------------------------
