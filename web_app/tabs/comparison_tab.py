@@ -10,7 +10,8 @@ from dash.dependencies import Input, Output  # type: ignore
 
 from ..config import app
 from ..styles import CENTERED_100, SHORT_HR, WIDTH_45
-from ..utils import db, histogram_converter
+from ..utils import db
+from ..utils import histogram_converter as hc
 from .database_controls import get_database_name_options, get_default_database
 
 
@@ -138,7 +139,7 @@ def update_histogram(histogram_name: str, log: bool, database_name: str, collect
 
     all_histograms = [db.get_histogram(histogram_name, c, database_name) for c in collection_names]
 
-    return histogram_converter.n_histograms_to_plotly(all_histograms, y_log=log, no_title=True)
+    return hc.mdh_to_plotly(list(filter(None, all_histograms)), y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------

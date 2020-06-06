@@ -1,9 +1,10 @@
 """Routes handlers for the Mad-Dash REST API server interface."""
 
 import time
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import tornado.web
+from mad_dash_histogram import MadDashHistogram
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
 from rest_tools.client import json_decode  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
@@ -11,6 +12,8 @@ from rest_tools.server import RestHandler, handler  # type: ignore
 from .config import AUTH_PREFIX, EXCLUDE_DBS
 
 REMOVE_ID = {"_id": False}
+
+EXCLUDE_KEYS = ['_id', 'history']
 
 
 # -----------------------------------------------------------------------------
@@ -74,7 +77,7 @@ class MadDashMotorClient():
 
         return collection
 
-    async def get_histograms_in_collection(self, database_name: str, collection_name: str) -> List[dict]:
+    async def get_histograms_in_collection(self, database_name: str, collection_name: str) -> List[MadDashHistogram]:
         """Return collection's contents."""
         collection = self.get_collection(database_name, collection_name)
 
@@ -82,7 +85,7 @@ class MadDashMotorClient():
         async for o in collection.find(projection=REMOVE_ID):
             objs.append(o)
 
-        return [c for c in objs if c['name'] != 'filelist']
+        return [MadDashHistogram.from_dict(d) for d in objs if d['name'] != 'filelist']
 
 
 # -----------------------------------------------------------------------------
@@ -174,7 +177,7 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
         collection_name = self.get_required_argument('collection')
 
         histograms = await self.md_mc.get_histograms_in_collection(database_name, collection_name)
-        histogram_names = [c['name'] for c in histograms]
+        histogram_names = [c.name for c in histograms]
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -196,7 +199,7 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histograms': histograms})
+                    'histograms': [h.to_dict() for h in histograms]})
 
 
 # -----------------------------------------------------------------------------
@@ -205,20 +208,20 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):
 class HistogramHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str, remove_id: bool=True) -> dict:
+    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str, remove_id: bool=True) -> Optional[MadDashHistogram]:
         """Return histogram object."""
         collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
-            histogram = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
+            histogram_dict = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
         else:
-            histogram = await collection.find_one({'name': histogram_name})
+            histogram_dict = await collection.find_one({'name': histogram_name})
 
+        if not histogram_dict:
+            return None
+
+        histogram = MadDashHistogram.from_dict(histogram_dict)
         return histogram
-
-    @staticmethod
-    def _histogram_with_good_fields(histogram: dict) -> dict:
-        return {k: histogram[k] for k in histogram if k not in ['_id', 'history']}
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self) -> None:
@@ -233,60 +236,47 @@ class HistogramHandler(BaseMadDashHandler):
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histogram': HistogramHandler._histogram_with_good_fields(histogram),
-                    'history': histogram['history']})
+                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+                    'history': histogram.history})
 
     @staticmethod
-    def verify_histogram_schema(histogram: dict) -> None:
+    def dict_to_mdh(histogram_dict: dict) -> MadDashHistogram:
         """Raise tornado errors if the histogram already exists or is not well structured."""
-        schema = {'name': str,
-                  'xmax': (int, float),
-                  'xmin': (int, float),
-                  'overflow': int,
-                  'underflow': int,
-                  'nan_count': int,
-                  'bin_values': list}  # type: Dict[str, Union[type, Tuple[type, ...]]]
-
-        # check fields
-        missing_keys = schema.keys() - set(histogram.keys())
-        if missing_keys:
-            raise tornado.web.HTTPError(400, reason=f"histogram has missing fields ({missing_keys})")
-
-        # check types
-        for field, _type in schema.items():
-            if not isinstance(histogram[field], _type):
-                raise tornado.web.HTTPError(400, reason=f"histogram field '{field}' is wrong type (should be {_type})")
-
-        # check for illegal names/keys
-        if histogram['name'] == 'filelist':
-            raise tornado.web.HTTPError(400, reason="histogram cannot be named 'filelist'")
-        if 'history' in histogram:
+        if 'history' in histogram_dict:
             raise tornado.web.HTTPError(400, reason="histogram cannot define the field 'history'")
+
+        try:
+            histogram = MadDashHistogram.from_dict(histogram_dict)
+        except (AttributeError, TypeError, NameError) as e:
+            raise tornado.web.HTTPError(400, reason=str(e))
+
+        return histogram
 
     async def histogram_exists(self, database_name: str, collection_name: str, histogram_name: str) -> bool:
         """Return whether histogram already exists."""
         exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
         return exists
 
-    async def update_histogram(self, database_name: str, collection_name: str, histogram: dict) -> bool:
+    async def update_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> bool:
         """Update the histogram's values. Assumes the histogram already exits."""
         prev_histo = await self.get_histogram(database_name, collection_name,
-                                              histogram['name'], remove_id=False)
+                                              histogram.name, remove_id=False)
 
-        bin_values = [b1 + b2 for b1, b2 in zip(histogram['bin_values'], prev_histo['bin_values'])]
-        histogram['bin_values'] = bin_values
-        histogram['overflow'] += prev_histo['overflow']
-        histogram['underflow'] += prev_histo['underflow']
-        histogram['nan_count'] += prev_histo['nan_count']
+        bin_values = [b1 + b2 for b1, b2 in zip(histogram.bin_values, prev_histo.bin_values)]
+        histogram.bin_values = bin_values
+        histogram.overflow += prev_histo.overflow
+        histogram.underflow += prev_histo.underflow
+        histogram.nan_count += prev_histo.nan_count
 
         # record when this happened
-        if 'history' not in histogram:
-            histogram['history'] = [0.0]  # must be old histogram, so it didn't come with a history
-        histogram['history'].append(time.time())
+        if not histogram.history:
+            histogram.history = [0.0]  # must be old histogram, so it didn't come with a history
+        histogram.history.append(time.time())
 
         # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        result = await collection.replace_one({'_id': prev_histo['_id']}, histogram)
+        histogram_dict = histogram.to_dict()
+        result = await collection.replace_one({'_id': prev_histo._id}, histogram_dict)
 
         return result.acknowledged
 
@@ -295,27 +285,27 @@ class HistogramHandler(BaseMadDashHandler):
         """Handle POST."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
-        histogram = self.get_required_argument('histogram')
+        histogram_dict = self.get_required_argument('histogram')
         update = self.get_optional_argument('update', default=False)
 
-        # raise 400
-        HistogramHandler.verify_histogram_schema(histogram)
+        # may raise 400
+        histogram = HistogramHandler.dict_to_mdh(histogram_dict)
 
         # update/insert
         histo_updated = False
-        if await self.histogram_exists(database_name, collection_name, histogram['name']):
+        if await self.histogram_exists(database_name, collection_name, histogram.name):
             if not update:
-                raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram['name']})")
+                raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram.name})")
             histo_updated = await self.update_histogram(database_name, collection_name, histogram)
         else:
             collection = await self.md_mc.get_create_collection(database_name, collection_name)
-            histogram['history'] = [time.time()]  # record when this happened
-            await collection.insert_one(histogram)
+            histogram.history = [time.time()]  # record when this happened
+            await collection.insert_one(histogram.to_dict())
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histogram': HistogramHandler._histogram_with_good_fields(histogram),
-                    'history': histogram['history'],
+                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+                    'history': histogram.history,
                     'updated': histo_updated})
 
 

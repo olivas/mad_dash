@@ -12,7 +12,8 @@ from dash.dependencies import Input, Output, State  # type: ignore
 from ..config import app
 from ..styles import (CENTERED_30, CENTERED_100, HIDDEN, SHORT_HR, STAT_LABEL, STAT_NUMBER,
                       WIDTH_30, WIDTH_45)
-from ..utils import db, histogram_converter
+from ..utils import db
+from ..utils import histogram_converter as hc
 from .database_controls import get_database_name_options, get_default_database
 
 
@@ -349,7 +350,7 @@ def update_n_histograms_label(histos: str) -> str:
 def update_n_empty_histograms_number(database_name: str, collection_name: str) -> str:
     """Return number of empty histograms in the collection."""
     histograms = db.get_histograms(collection_name, database_name,)
-    non_empty_histograms = [h for h in histograms if any(h['bin_values'])]
+    non_empty_histograms = [h for h in histograms if any(h.bin_values)]
     n_empty = len(histograms) - len(non_empty_histograms)
 
     return str(n_empty)
@@ -379,11 +380,11 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
     histograms = db.get_histograms(collection_name, database_name)
 
     def make_label(h):
-        if any(h['bin_values']):
-            return h['name']
-        return f"{h['name']} (empty)"
+        if any(h.bin_values):
+            return h.name
+        return f"{h.name} (empty)"
 
-    return [{'label': make_label(h), 'value': h['name']} for h in histograms]
+    return [{'label': make_label(h), 'value': h.name} for h in histograms]
 
 
 @app.callback(
@@ -395,16 +396,16 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
 def update_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return histogram_converter.histogram_to_plotly(histogram, y_log=log, no_title=True)
+    return hc.mdh_to_plotly(histogram, y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------
 # Default Histograms
 
 
-def _plot_histogram(database_name: str, collection_name: str, histo_name: str, log: bool) -> go.Figure:
+def _plot_default_histogram(database_name: str, collection_name: str, histo_name: str, log: bool) -> go.Figure:
     histogram = db.get_histogram(histo_name, collection_name, database_name)
-    return histogram_converter.histogram_to_plotly(histogram, title=histo_name, alert_no_data=True, y_log=log)
+    return hc.mdh_to_plotly(histogram, title=histo_name, alert_no_data=True, y_log=log)
 
 
 @app.callback(
@@ -414,7 +415,7 @@ def _plot_histogram(database_name: str, collection_name: str, histo_name: str, l
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_one_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryEnergy', log)
+    return _plot_default_histogram(database_name, collection_name, 'PrimaryEnergy', log)
 
 
 @app.callback(
@@ -424,7 +425,7 @@ def update_default_histograms_one_one(database_name: str, collection_name: str, 
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_one_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryZenith', log)
+    return _plot_default_histogram(database_name, collection_name, 'PrimaryZenith', log)
 
 
 @app.callback(
@@ -434,7 +435,7 @@ def update_default_histograms_one_two(database_name: str, collection_name: str, 
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_one_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'PrimaryCosZenith', log)
+    return _plot_default_histogram(database_name, collection_name, 'PrimaryCosZenith', log)
 
 
 @app.callback(
@@ -444,7 +445,7 @@ def update_default_histograms_one_three(database_name: str, collection_name: str
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_two_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'CascadeEnergy', log)
+    return _plot_default_histogram(database_name, collection_name, 'CascadeEnergy', log)
 
 
 @app.callback(
@@ -454,7 +455,7 @@ def update_default_histograms_two_one(database_name: str, collection_name: str, 
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_two_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'PulseTime', log)
+    return _plot_default_histogram(database_name, collection_name, 'PulseTime', log)
 
 
 @app.callback(
@@ -464,7 +465,7 @@ def update_default_histograms_two_two(database_name: str, collection_name: str, 
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_two_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'SecondaryMultiplicity', log)
+    return _plot_default_histogram(database_name, collection_name, 'SecondaryMultiplicity', log)
 
 
 @app.callback(
@@ -474,7 +475,7 @@ def update_default_histograms_two_three(database_name: str, collection_name: str
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_three_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'InIceDOMOccupancy', log)
+    return _plot_default_histogram(database_name, collection_name, 'InIceDOMOccupancy', log)
 
 
 @app.callback(
@@ -484,7 +485,7 @@ def update_default_histograms_three_one(database_name: str, collection_name: str
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_three_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'InIceDOMLaunchTime', log)
+    return _plot_default_histogram(database_name, collection_name, 'InIceDOMLaunchTime', log)
 
 
 @app.callback(
@@ -494,4 +495,4 @@ def update_default_histograms_three_two(database_name: str, collection_name: str
      Input('toggle-log-default-tab1', 'on')])
 def update_default_histograms_three_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
-    return _plot_histogram(database_name, collection_name, 'LogQtot', log)
+    return _plot_default_histogram(database_name, collection_name, 'LogQtot', log)

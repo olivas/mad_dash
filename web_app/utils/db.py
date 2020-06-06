@@ -1,10 +1,11 @@
 """Contains functions for querying the database(s)."""
 
 import logging
-from typing import List
+from typing import List, Optional
 from urllib.parse import urljoin
 
 import requests
+from mad_dash_histogram import MadDashHistogram
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import dbms_server_url, token_server_url
@@ -70,7 +71,7 @@ def get_histogram_names(collection_name: str, database_name: str) -> List[str]:
     return sorted(response['histograms'])
 
 
-def get_histograms(collection_name: str, database_name: str) -> List[dict]:
+def get_histograms(collection_name: str, database_name: str) -> List[MadDashHistogram]:
     """Return the histograms from the collection."""
     if not collection_name or not database_name:
         return []
@@ -82,13 +83,13 @@ def get_histograms(collection_name: str, database_name: str) -> List[dict]:
     response = md_rc.request_seq('GET', url, coll_histos_request_body)
 
     _log(url, database_name, collection_name)
-    return response['histograms']
+    return [MadDashHistogram.from_dict(h) for h in response['histograms']]
 
 
-def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> dict:
+def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> Optional[MadDashHistogram]:
     """Return the histogram."""
     if not histogram_name or not collection_name or not database_name:
-        return {}
+        return None
 
     md_rc = create_simprod_dbms_rest_connection()
     histo_request_body = {'database': database_name,
@@ -99,12 +100,13 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
         response = md_rc.request_seq('GET', url, histo_request_body)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 400:
-            return {}
+            return None
 
     _log(url, database_name, collection_name, histogram_name)
     histogram = response['histogram']
-    histogram['collection'] = collection_name
-    return histogram
+    mdh = MadDashHistogram.from_dict(histogram)
+    mdh.collection = collection_name
+    return mdh
 
 
 def get_filelist(collection_name: str, database_name: str) -> List[str]:
