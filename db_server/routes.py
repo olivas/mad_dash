@@ -257,28 +257,21 @@ class HistogramHandler(BaseMadDashHandler):
         exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
         return exists
 
-    async def update_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> bool:
+    async def update_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> Tuple[bool, MadDashHistogram]:
         """Update the histogram's values. Assumes the histogram already exits."""
-        prev_histo = await self.get_histogram(database_name, collection_name,
-                                              histogram.name, remove_id=False)
+        db_histo = await self.get_histogram(database_name, collection_name,
+                                            histogram.name, remove_id=False)
+        if not db_histo:
+            raise Exception("There is no histogram to update. This should've been caught upstream.")
 
-        bin_values = [b1 + b2 for b1, b2 in zip(histogram.bin_values, prev_histo.bin_values)]
-        histogram.bin_values = bin_values
-        histogram.overflow += prev_histo.overflow
-        histogram.underflow += prev_histo.underflow
-        histogram.nan_count += prev_histo.nan_count
-
-        # record when this happened
-        if not histogram.history:
-            histogram.history = [0.0]  # must be old histogram, so it didn't come with a history
-        histogram.history.append(time.time())
+        db_histo.update(histogram)
 
         # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        histogram_dict = histogram.to_dict()
-        result = await collection.replace_one({'_id': prev_histo._id}, histogram_dict)
+        histo_dict = db_histo.to_dict()
+        result = await collection.replace_one({'_id': histo_dict['_id']}, histo_dict)
 
-        return result.acknowledged
+        return result.acknowledged, db_histo
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self) -> None:
@@ -292,21 +285,24 @@ class HistogramHandler(BaseMadDashHandler):
         histogram = HistogramHandler.dict_to_mdh(histogram_dict)
 
         # update/insert
-        histo_updated = False
         if await self.histogram_exists(database_name, collection_name, histogram.name):
             if not update:
                 raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram.name})")
-            histo_updated = await self.update_histogram(database_name, collection_name, histogram)
+            was_updated, histo = await self.update_histogram(database_name, collection_name, histogram)
+            self.write({'database': database_name,
+                        'collection': collection_name,
+                        'histogram': histo.to_dict(exclude=EXCLUDE_KEYS),
+                        'history': histo.history,
+                        'updated': was_updated})
         else:
             collection = await self.md_mc.get_create_collection(database_name, collection_name)
-            histogram.history = [time.time()]  # record when this happened
+            histogram.record_to_history()  # record when this happened
             await collection.insert_one(histogram.to_dict())
-
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
-                    'history': histogram.history,
-                    'updated': histo_updated})
+            self.write({'database': database_name,
+                        'collection': collection_name,
+                        'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+                        'history': histogram.history,
+                        'updated': False})
 
 
 # -----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 """Histogram object for Mad Dash."""
 
 import copy
+import time
 from typing import Any, List, Tuple, Union
 
 
@@ -162,3 +163,33 @@ class MadDashHistogram:
                     del dict_[k]
 
         return dict_
+
+    def record_to_history(self, pseudo_first=False):
+        """Append epoch timestamp to `history`.
+
+        Keyword arguments:
+            pseudo_first -- add 0.0 if `history` is empty (default: {False})
+        """
+        if not self.history and pseudo_first:
+            self.history = [0.0]  # must be old histogram, so it didn't come with a history
+        self.history.append(time.time())
+
+    def update(self, new_histo: 'MadDashHistogram') -> None:
+        """Update/increment/replace attribute values with those in `new_histo`.
+
+        Append epoch timestamp to `history`.
+        """
+        for attr_name, attr_value in new_histo.to_dict().items():
+            if attr_name == 'bin_values':
+                bin_values = [b1 + b2 for b1, b2 in zip(self.bin_values, new_histo.bin_values)]
+                self.bin_values = bin_values
+            elif attr_name == 'overflow':
+                self.overflow += new_histo.overflow
+            elif attr_name == 'underflow':
+                self.underflow += new_histo.underflow
+            elif attr_name == 'nan_count':
+                self.nan_count += new_histo.nan_count
+            elif attr_name == 'history':
+                self.record_to_history(pseudo_first=True)
+            else:
+                self.__setattr__(attr_name, attr_value)
