@@ -92,3 +92,23 @@ class TestMadDashHistogram:
 
         out_dict = histogram.to_dict()
         assert dict_ == out_dict
+
+    def test_31(self):
+        """Test to_dict() with 'exclude' keys."""
+        extra = 5
+        addl = ['a']
+        keeps = 2.0
+
+        histo = MadDashHistogram('test', 0, 0, 0, 0, 0, [])
+        histo.extra = extra
+        histo.addl = addl
+        histo.keeps = keeps
+        dict_ = histo.to_dict(exclude=['extra', 'addl'])
+
+        assert histo.extra == extra
+        assert 'extra' not in dict_
+
+        assert histo.addl == addl
+        assert 'addl' not in dict_
+
+        assert dict_['keeps'] == keeps == histo.keeps
