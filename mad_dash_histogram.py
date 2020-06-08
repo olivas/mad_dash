@@ -1,7 +1,7 @@
 """Histogram object for Mad Dash."""
 
 import copy
-from typing import Dict, List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 
 class MadDashHistogram:
@@ -9,39 +9,108 @@ class MadDashHistogram:
 
     def __init__(self, name: str, xmax: Union[int, float], xmin: Union[int, float],
                  overflow: int, underflow: int, nan_count: int, bin_values: List[int]):
-        types = {}  # type: Dict[str, Union[type, Tuple[type, ...]]]
+        self.name = name
+        self.xmax = xmax
+        self.xmin = xmin
+        self.overflow = overflow
+        self.underflow = underflow
+        self.nan_count = nan_count
+        self.bin_values = bin_values
 
-        if name == 'filelist':
+        self.history = []
+
+    @staticmethod
+    def _check_type(value: Any, type_: Union[type, Tuple[type, ...]],
+                    member_type: Union[type, Tuple[type, ...]]=None) -> None:
+        """Raise TypeError if `value` not `type_`."""
+        if not isinstance(value, type_):
+            raise TypeError(f"Attribute should be {type_} not {type(value)}")
+        if member_type:
+            for member in value:
+                if not isinstance(member, member_type):
+                    raise TypeError(f"Attribute member type should be {member_type} not {type(member)}")
+
+    @property
+    def name(self) -> str:
+        """Histogram name."""
+        return self.__name
+
+    @name.setter
+    def name(self, value) -> None:
+        if value == 'filelist':
             raise NameError("histogram cannot be named 'filelist'")
+        MadDashHistogram._check_type(value, str)
+        self.__name = value
 
-        self.name = name  # type: str
-        types['name'] = str
+    @property
+    def xmax(self) -> Union[int, float]:
+        """Histogram x-max value."""
+        return self.__xmax
 
-        self.xmax = xmax  # type:  Union[int, float]
-        types['xmax'] = (int, float)
+    @xmax.setter
+    def xmax(self, value: Union[int, float]) -> None:
+        MadDashHistogram._check_type(value, (int, float))
+        self.__xmax = value
 
-        self.xmin = xmin  # type: Union[int, float]
-        types['xmin'] = (int, float)
+    @property
+    def xmin(self) -> Union[int, float]:
+        """Histogram x-min value."""
+        return self.__xmin
 
-        self.overflow = overflow  # type: int
-        types['overflow'] = int
+    @xmin.setter
+    def xmin(self, value: Union[int, float]) -> None:
+        MadDashHistogram._check_type(value, (int, float))
+        self.__xmin = value
 
-        self.underflow = underflow  # type: int
-        types['underflow'] = int
+    @property
+    def overflow(self) -> int:
+        """Histogram overflow value."""
+        return self.__overflow
 
-        self.nan_count = nan_count  # type: int
-        types['nan_count'] = int
+    @overflow.setter
+    def overflow(self, value: int) -> None:
+        MadDashHistogram._check_type(value, int)
+        self.__overflow = value
 
-        self.bin_values = bin_values  # type: List[int]
-        types['bin_values'] = list
+    @property
+    def underflow(self) -> int:
+        """Histogram underflow value."""
+        return self.__underflow
 
-        # check types
-        for attr_name, type_ in types.items():
-            attr_value = self.__getattribute__(attr_name)
-            if not isinstance(attr_value, type_):
-                raise TypeError(f"Attribute should be {type_} not {type(attr_value)}")
+    @underflow.setter
+    def underflow(self, value: int) -> None:
+        MadDashHistogram._check_type(value, int)
+        self.__underflow = value
 
-        self.history = []  # type: List[Union[int, float]]
+    @property
+    def nan_count(self) -> int:
+        """Histogram NaN count."""
+        return self.__nan_count
+
+    @nan_count.setter
+    def nan_count(self, value: int) -> None:
+        MadDashHistogram._check_type(value, int)
+        self.__nan_count = value
+
+    @property
+    def bin_values(self) -> list:
+        """Histogram data bin values."""
+        return self.__bin_values
+
+    @bin_values.setter
+    def bin_values(self, value: list) -> None:
+        MadDashHistogram._check_type(value, list, (int, float))
+        self.__bin_values = value
+
+    @property
+    def history(self) -> list:
+        """Histogram database-write history."""
+        return self.__history
+
+    @history.setter
+    def history(self, value: list) -> None:
+        MadDashHistogram._check_type(value, list, (int, float))
+        self.__history = value
 
     @staticmethod
     def from_dict(dict_: dict) -> 'MadDashHistogram':  # https://github.com/python/typing/issues/58
@@ -78,7 +147,13 @@ class MadDashHistogram:
 
     def to_dict(self, exclude: List[str] = None) -> dict:
         """Return attributes as dictionary."""
-        dict_ = copy.deepcopy(self.__dict__)
+        dict_ = copy.deepcopy(vars(self))
+
+        # remove class-property prefix from keys
+        prefix = '_MadDashHistogram__'
+        properties = [k for k in dict_ if k.startswith(prefix)]
+        for p in properties:
+            dict_[p[len(prefix):]] = dict_.pop(p)
 
         # remove keys in `exclude`
         if exclude:
