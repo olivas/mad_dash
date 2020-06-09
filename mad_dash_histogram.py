@@ -164,7 +164,7 @@ class MadDashHistogram:
 
         return dict_
 
-    def record_to_history(self, pseudo_first=False):
+    def add_to_history(self, pseudo_first=False):
         """Append epoch timestamp to `history`.
 
         Keyword arguments:
@@ -190,6 +190,6 @@ class MadDashHistogram:
             elif attr_name == 'nan_count':
                 self.nan_count += new_histo.nan_count
             elif attr_name == 'history':
-                self.record_to_history(pseudo_first=True)
+                self.add_to_history(pseudo_first=True)
             else:
                 self.__setattr__(attr_name, attr_value)

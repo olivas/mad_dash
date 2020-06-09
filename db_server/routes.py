@@ -1,7 +1,7 @@
 """Routes handlers for the Mad-Dash REST API server interface."""
 
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import tornado.web
 from mad_dash_histogram import MadDashHistogram
@@ -77,15 +77,15 @@ class MadDashMotorClient():
 
         return collection
 
-    async def get_histograms_in_collection(self, database_name: str, collection_name: str) -> List[MadDashHistogram]:
-        """Return collection's contents."""
+    async def get_histogram_dicts_in_collection(self, database_name: str, collection_name: str) -> List[dict]:
+        """Return collection's histogram dicts."""
         collection = self.get_collection(database_name, collection_name)
 
         objs = []
         async for o in collection.find(projection=REMOVE_ID):
             objs.append(o)
 
-        return [MadDashHistogram.from_dict(d) for d in objs if d['name'] != 'filelist']
+        return [d for d in objs if d['name'] != 'filelist']
 
 
 # -----------------------------------------------------------------------------
@@ -176,8 +176,8 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histograms = await self.md_mc.get_histograms_in_collection(database_name, collection_name)
-        histogram_names = [c.name for c in histograms]
+        histo_dicts = await self.md_mc.get_histogram_dicts_in_collection(database_name, collection_name)
+        histogram_names = [c['name'] for c in histo_dicts]
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -195,11 +195,11 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histograms = await self.md_mc.get_histograms_in_collection(database_name, collection_name)
+        histo_dicts = await self.md_mc.get_histogram_dicts_in_collection(database_name, collection_name)
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histograms': [h.to_dict() for h in histograms]})
+                    'histograms': histo_dicts})
 
 
 # -----------------------------------------------------------------------------
@@ -239,29 +239,14 @@ class HistogramHandler(BaseMadDashHandler):
                     'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
                     'history': histogram.history})
 
-    @staticmethod
-    def dict_to_mdh(histogram_dict: dict) -> MadDashHistogram:
-        """Raise tornado errors if the histogram already exists or is not well structured."""
-        if 'history' in histogram_dict:
-            raise tornado.web.HTTPError(400, reason="histogram cannot define the field 'history'")
+    async def update_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> None:
+        """Update the histogram's values. Assumes the histogram already exits.
 
-        try:
-            histogram = MadDashHistogram.from_dict(histogram_dict)
-        except (AttributeError, TypeError, NameError) as e:
-            raise tornado.web.HTTPError(400, reason=str(e))
-
-        return histogram
-
-    async def histogram_exists(self, database_name: str, collection_name: str, histogram_name: str) -> bool:
-        """Return whether histogram already exists."""
-        exists = bool(await self.get_histogram(database_name, collection_name, histogram_name))
-        return exists
-
-    async def update_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> Tuple[bool, MadDashHistogram]:
-        """Update the histogram's values. Assumes the histogram already exits."""
+        Write back to output buffer.
+        """
         db_histo = await self.get_histogram(database_name, collection_name,
                                             histogram.name, remove_id=False)
-        if not db_histo:
+        if not db_histo:  # here to appease mypy
             raise Exception("There is no histogram to update. This should've been caught upstream.")
 
         db_histo.update(histogram)
@@ -271,7 +256,30 @@ class HistogramHandler(BaseMadDashHandler):
         histo_dict = db_histo.to_dict()
         result = await collection.replace_one({'_id': histo_dict['_id']}, histo_dict)
 
-        return result.acknowledged, db_histo
+        # write
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histogram': db_histo.to_dict(exclude=EXCLUDE_KEYS),
+                    'history': db_histo.history,
+                    'updated': result.acknowledged})
+
+    async def insert_histogram(self, database_name: str, collection_name: str, histogram: MadDashHistogram) -> None:
+        """Insert the novel histogram.
+
+        Write back to output buffer.
+        """
+        histogram.add_to_history()  # record when this happened
+
+        # put in DB
+        collection = await self.md_mc.get_create_collection(database_name, collection_name)
+        await collection.insert_one(histogram.to_dict())
+
+        # write
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+                    'history': histogram.history,
+                    'updated': False})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self) -> None:
@@ -281,28 +289,27 @@ class HistogramHandler(BaseMadDashHandler):
         histogram_dict = self.get_required_argument('histogram')
         update = self.get_optional_argument('update', default=False)
 
-        # may raise 400
-        histogram = HistogramHandler.dict_to_mdh(histogram_dict)
+        # check reserved key(s)
+        if 'history' in histogram_dict:
+            raise tornado.web.HTTPError(400, reason="histogram cannot define the field 'history'")
+
+        # check type and structure
+        try:
+            histogram = MadDashHistogram.from_dict(histogram_dict)
+        except (AttributeError, TypeError, NameError) as e:
+            raise tornado.web.HTTPError(400, reason=str(e))
+
+        # is the histogram already in the collection?
+        async def histogram_exists() -> bool:
+            return bool(await self.get_histogram(database_name, collection_name, histogram.name))
 
         # update/insert
-        if await self.histogram_exists(database_name, collection_name, histogram.name):
+        if await histogram_exists():
             if not update:
                 raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram.name})")
-            was_updated, histo = await self.update_histogram(database_name, collection_name, histogram)
-            self.write({'database': database_name,
-                        'collection': collection_name,
-                        'histogram': histo.to_dict(exclude=EXCLUDE_KEYS),
-                        'history': histo.history,
-                        'updated': was_updated})
+            await self.update_histogram(database_name, collection_name, histogram)
         else:
-            collection = await self.md_mc.get_create_collection(database_name, collection_name)
-            histogram.record_to_history()  # record when this happened
-            await collection.insert_one(histogram.to_dict())
-            self.write({'database': database_name,
-                        'collection': collection_name,
-                        'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
-                        'history': histogram.history,
-                        'updated': False})
+            await self.insert_histogram(database_name, collection_name, histogram)
 
 
 # -----------------------------------------------------------------------------
@@ -311,13 +318,18 @@ class HistogramHandler(BaseMadDashHandler):
 class FileNamesHandler(BaseMadDashHandler):
     """Handle querying list of filenames for given collection."""
 
-    async def get_filelist(self, database_name: str, collection_name: str, remove_id: bool=True) -> Dict[str, list]:
-        """Return list of files in collection."""
+    async def get_filelist_attributes(self, database_name: str, collection_name: str, remove_id: bool=True) -> Tuple[Any, List[str], List[Union[int, float]]]:
+        """Return filelist-dict's id, filenames, and history in collection.
+
+        Raise {TypeError} if filelist-dict not in collection.
+        """
         collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
-            return await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
-        return await collection.find_one({'name': 'filelist'})
+            dict_ = await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
+        dict_ = await collection.find_one({'name': 'filelist'})
+
+        return dict_['_id'], dict_['files'], dict_['history']
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self) -> None:
@@ -325,37 +337,63 @@ class FileNamesHandler(BaseMadDashHandler):
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        filenamelist = []  # type: List[str]
-        history = []  # type: List[float]
-        filelist = await self.get_filelist(database_name, collection_name)
-        if filelist:
-            filenamelist = filelist['files']
-            history = filelist['history']
+        try:
+            _, filenames, history = await self.get_filelist_attributes(database_name, collection_name)
+        except TypeError:
+            filenames = []
+            history = []
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'files': filenamelist,
+                    'files': filenames,
                     'history': history})
 
-    async def update_filelist(self, database_name: str, collection_name: str, filenamelist: List[str]) -> Tuple[bool, List[str], List[float]]:
-        """Update (extends) filelist. Assumes the filelist already exits."""
-        prev_filelist = await self.get_filelist(database_name, collection_name, remove_id=False)
+    async def update_filelist(self, database_name: str, collection_name: str, new_filenames: List[str]) -> None:
+        """Update (extends) filelist. Assumes the filelist already exits.
 
-        filenamelist = sorted(set(filenamelist) | set(prev_filelist['files']))
+        Write back to output buffer.
+        """
+        _id, prev_filenames, history = await self.get_filelist_attributes(database_name, collection_name, remove_id=False)
 
-        if 'history' not in prev_filelist:
+        filenames = sorted(set(new_filenames) | set(prev_filenames))
+
+        if not history:
             history = [0.0]  # must be an old filelist, so it didn't come with a history
-        else:
-            history = prev_filelist['history']
         history.append(time.time())
 
+        # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        filelist = {'name': 'filelist',
-                    'files': filenamelist,
-                    'history': history}
-        result = await collection.replace_one({'_id': prev_filelist['_id']}, filelist)
+        dict_ = {'name': 'filelist',
+                 'files': filenames,
+                 'history': history}
+        result = await collection.replace_one({'_id': _id}, dict_)
 
-        return result.acknowledged, filenamelist, history
+        # write
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'files': filenames,
+                    'history': history,
+                    'updated': result.acknowledged})
+
+    async def insert_filelist(self, database_name: str, collection_name: str, filenames: List[str]) -> None:
+        """Insert novel filelist object.
+
+        Write back to output buffer.
+        """
+        collection = await self.md_mc.get_create_collection(database_name, collection_name)
+        history = [time.time()]
+
+        # put in DB
+        await collection.insert_one({'name': 'filelist',
+                                     'files': filenames,
+                                     'history': history})
+
+        # write
+        self.write({'database': database_name,
+                    'collection': collection_name,
+                    'files': filenames,
+                    'history': history,
+                    'updated': False})
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
     async def post(self) -> None:
@@ -369,24 +407,21 @@ class FileNamesHandler(BaseMadDashHandler):
         if not isinstance(filenamelist, list):
             raise tornado.web.HTTPError(400, reason=f"'files' field is not a list ({type(filenamelist)})")
 
+        # is the filelist already in the collection?
+        async def filelist_exists() -> bool:
+            try:
+                await self.get_filelist_attributes(database_name, collection_name)
+                return True
+            except TypeError:
+                return False
+
         # update/insert
-        files_updated = False
-        if await self.get_filelist(database_name, collection_name):
+        if await filelist_exists():
             if not update:
                 raise tornado.web.HTTPError(409, reason=f"files already in collection, {collection_name}")
-            files_updated, filenamelist, history = await self.update_filelist(database_name, collection_name, filenamelist)
+            await self.update_filelist(database_name, collection_name, filenamelist)
         else:
-            collection = await self.md_mc.get_create_collection(database_name, collection_name)
-            history = [time.time()]
-            await collection.insert_one({'name': 'filelist',
-                                         'files': filenamelist,
-                                         'history': history})
-
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'files': filenamelist,
-                    'history': history,
-                    'updated': files_updated})
+            await self.insert_filelist(database_name, collection_name, filenamelist)
 
 
 # -----------------------------------------------------------------------------
