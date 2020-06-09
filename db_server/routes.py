@@ -329,7 +329,11 @@ class FileNamesHandler(BaseMadDashHandler):
             dict_ = await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
         dict_ = await collection.find_one({'name': 'filelist'})
 
-        return dict_['_id'], dict_['files'], dict_['history']
+        history = []  # type: List[Union[int,float]]
+        if 'history' in dict_:  # old collections may not have a history defined
+            history = dict_['history']
+
+        return dict_['_id'], dict_['files'], history
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
     async def get(self) -> None:
