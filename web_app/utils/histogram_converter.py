@@ -4,14 +4,16 @@
 from typing import List, Optional, Union
 
 import plotly.graph_objs as go  # type: ignore
-from mad_dash_histogram import MadDashHistogram
+
+# local imports
+import maddash_api as api
 
 
 def _has_all_data(histograms: list) -> bool:
     return any(histograms) and all(histograms)  # deal breakers: empty list, 1+ empty members
 
 
-def _get_layout(histograms: List[MadDashHistogram], title: Union[str, None], y_log: bool, alert_no_data: bool, no_title: bool) -> go.Layout:
+def _get_layout(histograms: List[api.Histogram], title: Union[str, None], y_log: bool, alert_no_data: bool, no_title: bool) -> go.Layout:
     """Get the layout for the histogram(s) plot."""
     histograms = list(filter(None, histograms))
 
@@ -52,7 +54,7 @@ def _get_layout(histograms: List[MadDashHistogram], title: Union[str, None], y_l
                      plot_bgcolor=plot_bgcolor)
 
 
-def _get_data(histograms: List[MadDashHistogram]) -> Union[List[go.Bar], None]:
+def _get_data(histograms: List[api.Histogram]) -> Union[List[go.Bar], None]:
     """Get the data for the histogram(s) plot."""
     histograms = list(filter(None, histograms))
 
@@ -77,13 +79,13 @@ def _get_data(histograms: List[MadDashHistogram]) -> Union[List[go.Bar], None]:
     return data
 
 
-def mdh_to_plotly(histograms: Union[Optional[MadDashHistogram], List[MadDashHistogram]], title: str=None, y_log: bool=False, alert_no_data: bool=False, no_title: bool=False) -> go.Figure:
+def mdh_to_plotly(histograms: Union[Optional[api.Histogram], List[api.Histogram]], title: str=None, y_log: bool=False, alert_no_data: bool=False, no_title: bool=False) -> go.Figure:
     """Return a plotly Bar graph object with a n overlapped histograms.
 
     If the contents in `histograms` are not complete, ignore any other data.
 
     Arguments:
-        histograms -- a single MadDashHistogram or a list of n MadDashHistogram
+        histograms -- a single api.Histogram or a list of n api.Histogram
 
     Keyword arguments:
         title -- title of the plot (default: histograms[0]['name'])
@@ -96,12 +98,12 @@ def mdh_to_plotly(histograms: Union[Optional[MadDashHistogram], List[MadDashHist
     # make `histograms` a list with no Nones
     if histograms is None:
         histograms = []
-    elif isinstance(histograms, MadDashHistogram):
+    elif isinstance(histograms, api.Histogram):
         histograms = [histograms]
 
-    if not (isinstance(histograms, list) and all(isinstance(h, MadDashHistogram) for h in histograms)):
+    if not (isinstance(histograms, list) and all(isinstance(h, api.Histogram) for h in histograms)):
         raise TypeError(
-            "`histograms` argument needs to be a single MadDashHistogram or a list of n MadDashHistogram.")
+            "`histograms` argument needs to be a single api.Histogram or a list of n api.Histogram.")
 
     layout = _get_layout(histograms, title, y_log, alert_no_data, no_title)
     data = _get_data(histograms)

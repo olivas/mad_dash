@@ -1,16 +1,16 @@
-"""Test the MadDashHistogram class."""
+"""Test the api.Histogram class."""
 
 from typing import List, Union
 
+import maddash_api as api
 import pytest  # type: ignore
-from mad_dash_histogram import MadDashHistogram
 
 
-class TestMadDashHistogram:
-    """Unit test the MadDashHistogram class."""
+class TestAPIHistogram:
+    """Unit test the api.Histogram class."""
 
     @staticmethod
-    def assert_values(histogram: MadDashHistogram, name: str, xmax: Union[int, float],
+    def assert_values(histogram: api.Histogram, name: str, xmax: Union[int, float],
                       xmin: Union[int, float], overflow: int, underflow: int, nan_count: int,
                       bin_values: List[int]):
         """Assert each value is in the histogram."""
@@ -32,9 +32,9 @@ class TestMadDashHistogram:
         nan_count = 12
         bin_values = [0, 2, 4, 5, 9, 8, 5]
 
-        histogram = MadDashHistogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestMadDashHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                           nan_count, bin_values)
+        histogram = api.Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                       nan_count, bin_values)
 
         history = [200, 500]
         histogram.history = history
@@ -50,9 +50,9 @@ class TestMadDashHistogram:
         nan_count = 12
         bin_values = [0, 2, 4.02, 5, 9.486, 8, 5]
 
-        histogram = MadDashHistogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestMadDashHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                           nan_count, bin_values)
+        histogram = api.Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                       nan_count, bin_values)
 
         history = [10.25, 300]
         histogram.history = history
@@ -61,7 +61,7 @@ class TestMadDashHistogram:
     def test_20(self):
         """Fail-test name attribute."""
         with pytest.raises(NameError):
-            _ = MadDashHistogram('filelist', 0, 0, 0, 0, 0, [])
+            _ = api.Histogram('filelist', 0, 0, 0, 0, 0, [])
 
     def test_30(self):
         """Test from_dict() and to_dict()."""
@@ -86,9 +86,9 @@ class TestMadDashHistogram:
             'extra_value': extra_value
         }
 
-        histogram = MadDashHistogram.from_dict(dict_)
-        TestMadDashHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                           nan_count, bin_values)
+        histogram = api.Histogram.from_dict(dict_)
+        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                       nan_count, bin_values)
 
         out_dict = histogram.to_dict()
         assert dict_ == out_dict
@@ -99,7 +99,7 @@ class TestMadDashHistogram:
         addl = ['a']
         keeps = 2.0
 
-        histo = MadDashHistogram('test', 0, 0, 0, 0, 0, [])
+        histo = api.Histogram('test', 0, 0, 0, 0, 0, [])
         histo.extra = extra
         histo.addl = addl
         histo.keeps = keeps

@@ -5,7 +5,9 @@ from typing import List, Optional
 from urllib.parse import urljoin
 
 import requests
-from mad_dash_histogram import MadDashHistogram
+
+# local imports
+import maddash_api as api
 from rest_tools.client import RestClient  # type: ignore
 
 from ..config import dbms_server_url, token_server_url
@@ -71,7 +73,7 @@ def get_histogram_names(collection_name: str, database_name: str) -> List[str]:
     return sorted(response['histograms'])
 
 
-def get_histograms(collection_name: str, database_name: str) -> List[MadDashHistogram]:
+def get_histograms(collection_name: str, database_name: str) -> List[api.Histogram]:
     """Return the histograms from the collection."""
     if not collection_name or not database_name:
         return []
@@ -83,10 +85,10 @@ def get_histograms(collection_name: str, database_name: str) -> List[MadDashHist
     response = md_rc.request_seq('GET', url, coll_histos_request_body)
 
     _log(url, database_name, collection_name)
-    return [MadDashHistogram.from_dict(h) for h in response['histograms']]
+    return [api.Histogram.from_dict(h) for h in response['histograms']]
 
 
-def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> Optional[MadDashHistogram]:
+def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> Optional[api.Histogram]:
     """Return the histogram."""
     if not histogram_name or not collection_name or not database_name:
         return None
@@ -104,7 +106,7 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
 
     _log(url, database_name, collection_name, histogram_name)
     histogram = response['histogram']
-    mdh = MadDashHistogram.from_dict(histogram)
+    mdh = api.Histogram.from_dict(histogram)
     mdh.collection = collection_name
     return mdh
 

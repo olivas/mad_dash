@@ -1,11 +1,11 @@
-"""Histogram object for Mad Dash."""
+"""API for Mad-Dash-wide usages."""
 
 import copy
 import time
 from typing import Any, List, Tuple, Union
 
 
-class MadDashHistogram:
+class Histogram:
     """A representation of a histogram for Mad-Dash related purposes."""
 
     def __init__(self, name: str, xmax: Union[int, float], xmin: Union[int, float],
@@ -40,7 +40,7 @@ class MadDashHistogram:
     def name(self, value) -> None:
         if value == 'filelist':
             raise NameError("histogram cannot be named 'filelist'")
-        MadDashHistogram._check_type(value, str)
+        Histogram._check_type(value, str)
         self.__name = value
 
     @property
@@ -50,7 +50,7 @@ class MadDashHistogram:
 
     @xmax.setter
     def xmax(self, value: Union[int, float]) -> None:
-        MadDashHistogram._check_type(value, (int, float))
+        Histogram._check_type(value, (int, float))
         self.__xmax = value
 
     @property
@@ -60,7 +60,7 @@ class MadDashHistogram:
 
     @xmin.setter
     def xmin(self, value: Union[int, float]) -> None:
-        MadDashHistogram._check_type(value, (int, float))
+        Histogram._check_type(value, (int, float))
         self.__xmin = value
 
     @property
@@ -70,7 +70,7 @@ class MadDashHistogram:
 
     @overflow.setter
     def overflow(self, value: int) -> None:
-        MadDashHistogram._check_type(value, int)
+        Histogram._check_type(value, int)
         self.__overflow = value
 
     @property
@@ -80,7 +80,7 @@ class MadDashHistogram:
 
     @underflow.setter
     def underflow(self, value: int) -> None:
-        MadDashHistogram._check_type(value, int)
+        Histogram._check_type(value, int)
         self.__underflow = value
 
     @property
@@ -90,7 +90,7 @@ class MadDashHistogram:
 
     @nan_count.setter
     def nan_count(self, value: int) -> None:
-        MadDashHistogram._check_type(value, int)
+        Histogram._check_type(value, int)
         self.__nan_count = value
 
     @property
@@ -100,7 +100,7 @@ class MadDashHistogram:
 
     @bin_values.setter
     def bin_values(self, value: list) -> None:
-        MadDashHistogram._check_type(value, list, (int, float))
+        Histogram._check_type(value, list, (int, float))
         self.__bin_values = value
 
     @property
@@ -110,12 +110,12 @@ class MadDashHistogram:
 
     @history.setter
     def history(self, value: list) -> None:
-        MadDashHistogram._check_type(value, list, (int, float))
+        Histogram._check_type(value, list, (int, float))
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: dict) -> 'MadDashHistogram':  # https://github.com/python/typing/issues/58
-        """Create a MadDashHistogram instance from a dict. Factory method.
+    def from_dict(dict_: dict) -> 'Histogram':  # https://github.com/python/typing/issues/58
+        """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
 
@@ -127,13 +127,13 @@ class MadDashHistogram:
         Raises a {TypeError} if there's any mistyped items (attributes)
         """
         try:
-            mdh = MadDashHistogram(dict_['name'],
-                                   dict_['xmax'],
-                                   dict_['xmin'],
-                                   dict_['overflow'],
-                                   dict_['underflow'],
-                                   dict_['nan_count'],
-                                   dict_['bin_values'])
+            mdh = Histogram(dict_['name'],
+                            dict_['xmax'],
+                            dict_['xmin'],
+                            dict_['overflow'],
+                            dict_['underflow'],
+                            dict_['nan_count'],
+                            dict_['bin_values'])
         except KeyError as e:
             raise AttributeError(f"histogram has missing field {str(e)}")
 
@@ -151,7 +151,7 @@ class MadDashHistogram:
         dict_ = copy.deepcopy(vars(self))
 
         # remove class-property prefix from keys
-        prefix = '_MadDashHistogram__'
+        prefix = '_Histogram__'
         properties = [k for k in dict_ if k.startswith(prefix)]
         for p in properties:
             dict_[p[len(prefix):]] = dict_.pop(p)
@@ -174,7 +174,7 @@ class MadDashHistogram:
             self.history = [0.0]  # must be old histogram, so it didn't come with a history
         self.history.append(time.time())
 
-    def update(self, new_histo: 'MadDashHistogram') -> None:
+    def update(self, new_histo: 'Histogram') -> None:
         """Update/increment/replace attribute values with those in `new_histo`.
 
         Append epoch timestamp to `history`.
