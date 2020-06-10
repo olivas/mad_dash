@@ -1,4 +1,5 @@
-from math import sqrt, log10
+from math import log10, sqrt
+
 # Test from F.Porter "Testing Consistency of Two Histograms" arXiv : 0804.0380# 
 
 def test_bhattacharyya_distance_measure(h1,h2):
@@ -20,4 +21,3 @@ def test_bhattacharyya_distance_measure(h1,h2):
     p = sqrt(n1*n2) # math.sqrt casts its arguments to a float
     T = sqrt(sum(terms))/p # => this avoids an integer division bug in this line
     return T
-            

@@ -2,6 +2,7 @@
 
 import logging
 
+# local imports
 from web_app.config import app
 
 if __name__ == '__main__':

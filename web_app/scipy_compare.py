@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import logging
+from multiprocessing import Pool, TimeoutError
 
 import numpy
-from scipy.stats import chisquare
-from scipy.stats import anderson_ksamp
+from scipy.stats import anderson_ksamp, chisquare
 from scipy.stats.mstats import ks_twosamp
 
-from multiprocessing import Pool, TimeoutError
 
 def both_empty(h1, h2):
     '''

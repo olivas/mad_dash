@@ -10,6 +10,8 @@ from typing import Iterator, List, Tuple
 from urllib.parse import urljoin
 
 import requests
+
+# local imports
 from rest_tools.client import RestClient  # type: ignore
 
 

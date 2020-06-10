@@ -1,4 +1,5 @@
 from math import log
+
 # Test from F.Porter "Testing Consistency of Two Histograms" arXiv : 0804.0380# 
 
 def test_anderson_darling(h1, h2):

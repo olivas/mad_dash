@@ -1,5 +1,7 @@
 from math import log
+
 from scipy.special import binom
+
 # Test from F.Porter "Testing Consistency of Two Histograms" arXiv : 0804.0380# 
 
 def test_cramer_von_mises(h1, h2):

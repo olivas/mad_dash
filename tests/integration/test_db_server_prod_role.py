@@ -7,6 +7,8 @@ import uuid
 
 import pytest  # type: ignore
 import requests
+
+# local imports
 from rest_tools.client import RestClient  # type: ignore
 
 

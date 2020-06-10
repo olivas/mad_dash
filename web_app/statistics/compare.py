@@ -1,11 +1,6 @@
-from .metrics import norm_chisq 
-from .metrics import shape_chisq
-from .metrics import bdm 
-from .metrics import kolmogorov_smirnof 
-from .metrics import llh_ratio 
-from .metrics import llh_value 
-from .metrics import cramer_von_mises
-from .metrics import anderson_darling
+from .metrics import (anderson_darling, bdm, cramer_von_mises, kolmogorov_smirnof,
+                      llh_ratio, llh_value, norm_chisq, shape_chisq)
+
 
 def _comparable(h1, h2):
     '''
@@ -65,5 +60,3 @@ def compare(hist1, hist2,
         result["ks"] = kolmogorov_smirnof.test_kolmogorov_smirnof(hist1, hist2)
 
     return result
-    
-    

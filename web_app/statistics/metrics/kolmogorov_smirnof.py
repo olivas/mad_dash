@@ -1,5 +1,6 @@
 from math import fabs
-    
+
+
 # The following tests are from F.Porter
 # "Testing Consistency of Two Histograms" arXiv : 0804.0380
 def test_kolmogorov_smirnof(h1, h2):
@@ -21,5 +22,3 @@ def test_kolmogorov_smirnof(h1, h2):
                  for i in range(nbins)]
     T = max(cdf_diffs)    
     return T
-        
-    

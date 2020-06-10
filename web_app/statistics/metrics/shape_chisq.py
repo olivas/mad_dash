@@ -26,5 +26,3 @@ def test_shape_chisq(h1, h2):
                  if u > 0 and v > 0 ]
     T = sum(terms)
     return T
-    
-    

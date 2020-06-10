@@ -1,6 +1,8 @@
 from math import log
+
 from numpy import isinf
 from scipy.special import binom
+
 # Test from F.Porter "Testing Consistency of Two Histograms" arXiv : 0804.0380# 
 
 def test_llh_value(h1, h2):

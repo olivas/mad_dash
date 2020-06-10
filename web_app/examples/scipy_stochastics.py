@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
-import sys
-sys.path.append('..')
-
 import random
+import sys
+
 import numpy
 
+# local imports
 from scipy_compare import compare
+
+sys.path.append('..')
+
+
 
 mu = 0.
 sigma = 1.
@@ -39,8 +43,3 @@ print(compare(poisson_benchmark, poisson_test))
 #    terms = (f_obs - f_exp)**2 / f_exp
 #  Power_divergenceResult(statistic=nan, pvalue=nan)
 #  {'chisq': {'T': nan, 'pvalue': nan}, 'KS': {'T': 0.1, 'pvalue': 0.9999652306540077}, 'AD': {'pvalue': 0, 'Exception': 'The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()'}}
-
-
-
-
-

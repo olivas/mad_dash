@@ -10,8 +10,8 @@ import plotly.graph_objs as go  # type: ignore
 from dash.dependencies import Input, Output, State  # type: ignore
 
 from ..config import app
-from ..styles import (CENTERED_30, CENTERED_100, HIDDEN, SHORT_HR, STAT_LABEL, STAT_NUMBER,
-                      WIDTH_30, WIDTH_45)
+from ..styles import (CENTERED_30, CENTERED_100, HIDDEN, SHORT_HR,
+                      STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45)
 from ..utils import db
 from ..utils import histogram_converter as hc
 from .database_controls import get_database_name_options, get_default_database

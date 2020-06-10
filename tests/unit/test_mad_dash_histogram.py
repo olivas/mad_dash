@@ -2,8 +2,10 @@
 
 from typing import List, Union
 
-import maddash_api as api
 import pytest  # type: ignore
+
+# local imports
+import maddash_api as api
 
 
 class TestAPIHistogram:

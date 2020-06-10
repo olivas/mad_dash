@@ -3,9 +3,11 @@
 import time
 from typing import Any, List, Optional, Tuple, Union
 
-import maddash_api as api
 import tornado.web
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
+
+# local imports
+import maddash_api as api
 from rest_tools.client import json_decode  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 

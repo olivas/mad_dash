@@ -5,6 +5,8 @@ import logging
 from urllib.parse import quote_plus
 
 from motor.motor_tornado import MotorClient  # type: ignore
+
+# local imports
 from rest_tools.server import RestHandlerSetup, RestServer, from_environment  # type: ignore
 
 from .config import EXPECTED_CONFIG
