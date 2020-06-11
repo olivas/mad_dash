@@ -1,6 +1,8 @@
 # mad_dash
 A suite for displaying and managing histograms stored at Madison's Data Warehouse
 
+[![CircleCI](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master)
+
 There are three independent applications that read/write to a common MongoDB database server: a database interface REST server, a web application, and a client script for production.
 
 
@@ -63,4 +65,4 @@ Go to http://localhost:8050/
 1. `pytest`
 
 ### Automated Testing
-_TBD_
+[![CircleCI](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master)
