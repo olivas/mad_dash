@@ -3,7 +3,7 @@ A suite for displaying and managing histograms stored at Madison's Data Warehous
 
 [![CircleCI](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/mad_dash/tree/master)
 
-There are three independent applications that read/write to a common MongoDB database server: a database interface REST server, a web application, and a client script for production.
+There are three independent applications that read/write to a common MongoDB database server: a database-interface REST server, a web application, and a client script for production.
 
 
 ## Database REST Server
@@ -13,13 +13,13 @@ A REST server that interfaces a local MongoDB server
     python3 -m virtualenv -p python3 mad_dash_db_server
     pip install -r db_server/requirements.txt
  
-#### *Optional:* First Kill All Active MongoDBs Daemons
+#### *Optional:* First Kill All Active MongoDB Daemons
 `sudo killall mongod`
-  
-#### Launch Local MongoDB Server via Docker
+
+#### Launch Local MongoDB Server and via Docker
     ./db_server/resources/mongo_test_server.sh
 
-#### Launch Local Token Service via Docker
+#### Launch Local  via Docker
     ./db_server/resources/token_test_server.sh
     
 ### Running the Server   
@@ -27,10 +27,10 @@ A REST server that interfaces a local MongoDB server
 
 
 ## Production Client
-A script to add histograms and file-lists to the MongoDB DMBS
+A script to add histograms and I3 file lists to the MongoDB DMBS
 
 ### Getting Started
-1. Get I3 histogram pickle file(s)
+1. Get I3 histogram pickle file(s). *The filename will be used to identify the Mongo collection*
 1. Have an http connection (not required for debugging)
 
 ### POSTing and Updating from Pickle Files
