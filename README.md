@@ -10,12 +10,14 @@ A REST server that interfaces a local MongoDB server
 ### Getting Started
     python3 -m virtualenv -p python3 mad_dash_db_server
     pip install -r db_server/requirements.txt
+ 
+#### *Optional:* First Kill All Active MongoDBs Daemons
+`sudo killall mongod`
   
-#### Local MongoDB Server
-    sudo killall mongod
+#### Launch Local MongoDB Server via Docker
     ./db_server/resources/mongo_test_server.sh
 
-#### Local Token Service
+#### Launch Local Token Service via Docker
     ./db_server/resources/token_test_server.sh
     
 ### Running the Server   
