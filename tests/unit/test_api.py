@@ -1,6 +1,5 @@
 """Test the api.py."""
 
-import pickle
 from typing import List, Union
 
 import pytest  # type: ignore
