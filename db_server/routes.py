@@ -7,7 +7,7 @@ import tornado.web
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
 
 # local imports
-import maddash_api as api
+import api
 from rest_tools.client import json_decode  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 
@@ -210,7 +210,7 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):
 class HistogramHandler(BaseMadDashHandler):
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str, remove_id: bool=True) -> Optional[api.Histogram]:
+    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str, remove_id: bool=True) -> Optional[api.I3Histogram]:
         """Return histogram object."""
         collection = self.md_mc.get_collection(database_name, collection_name)
 
@@ -222,7 +222,7 @@ class HistogramHandler(BaseMadDashHandler):
         if not histogram_dict:
             return None
 
-        histogram = api.Histogram.from_dict(histogram_dict)
+        histogram = api.I3Histogram.from_dict(histogram_dict)
         return histogram
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
@@ -241,7 +241,7 @@ class HistogramHandler(BaseMadDashHandler):
                     'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
                     'history': histogram.history})
 
-    async def update_histogram(self, database_name: str, collection_name: str, histogram: api.Histogram) -> None:
+    async def update_histogram(self, database_name: str, collection_name: str, histogram: api.I3Histogram) -> None:
         """Update the histogram's values. Assumes the histogram already exits.
 
         Write back to output buffer.
@@ -265,7 +265,7 @@ class HistogramHandler(BaseMadDashHandler):
                     'history': db_histo.history,
                     'updated': result.acknowledged})
 
-    async def insert_histogram(self, database_name: str, collection_name: str, histogram: api.Histogram) -> None:
+    async def insert_histogram(self, database_name: str, collection_name: str, histogram: api.I3Histogram) -> None:
         """Insert the novel histogram.
 
         Write back to output buffer.
@@ -297,7 +297,7 @@ class HistogramHandler(BaseMadDashHandler):
 
         # check type and structure
         try:
-            histogram = api.Histogram.from_dict(histogram_dict)
+            histogram = api.I3Histogram.from_dict(histogram_dict)
         except (AttributeError, TypeError, NameError) as e:
             raise tornado.web.HTTPError(400, reason=str(e))
 

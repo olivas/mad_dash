@@ -5,8 +5,8 @@ import time
 from typing import Any, List, Tuple, Union
 
 
-class Histogram:
-    """A representation of a histogram for Mad-Dash related purposes."""
+class I3Histogram:
+    """A representation of a histogram."""
 
     def __init__(self, name: str, xmax: Union[int, float], xmin: Union[int, float],
                  overflow: int, underflow: int, nan_count: int, bin_values: List[int]):
@@ -40,7 +40,7 @@ class Histogram:
     def name(self, value) -> None:
         if value == 'filelist':
             raise NameError("histogram cannot be named 'filelist'")
-        Histogram._check_type(value, str)
+        I3Histogram._check_type(value, str)
         self.__name = value
 
     @property
@@ -50,7 +50,7 @@ class Histogram:
 
     @xmax.setter
     def xmax(self, value: Union[int, float]) -> None:
-        Histogram._check_type(value, (int, float))
+        I3Histogram._check_type(value, (int, float))
         self.__xmax = value
 
     @property
@@ -60,7 +60,7 @@ class Histogram:
 
     @xmin.setter
     def xmin(self, value: Union[int, float]) -> None:
-        Histogram._check_type(value, (int, float))
+        I3Histogram._check_type(value, (int, float))
         self.__xmin = value
 
     @property
@@ -70,7 +70,7 @@ class Histogram:
 
     @overflow.setter
     def overflow(self, value: int) -> None:
-        Histogram._check_type(value, int)
+        I3Histogram._check_type(value, int)
         self.__overflow = value
 
     @property
@@ -80,7 +80,7 @@ class Histogram:
 
     @underflow.setter
     def underflow(self, value: int) -> None:
-        Histogram._check_type(value, int)
+        I3Histogram._check_type(value, int)
         self.__underflow = value
 
     @property
@@ -90,7 +90,7 @@ class Histogram:
 
     @nan_count.setter
     def nan_count(self, value: int) -> None:
-        Histogram._check_type(value, int)
+        I3Histogram._check_type(value, int)
         self.__nan_count = value
 
     @property
@@ -100,7 +100,7 @@ class Histogram:
 
     @bin_values.setter
     def bin_values(self, value: list) -> None:
-        Histogram._check_type(value, list, (int, float))
+        I3Histogram._check_type(value, list, (int, float))
         self.__bin_values = value
 
     @property
@@ -110,11 +110,11 @@ class Histogram:
 
     @history.setter
     def history(self, value: list) -> None:
-        Histogram._check_type(value, list, (int, float))
+        I3Histogram._check_type(value, list, (int, float))
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: dict) -> 'Histogram':  # https://github.com/python/typing/issues/58
+    def from_dict(dict_: dict) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
         """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
@@ -127,13 +127,13 @@ class Histogram:
         Raises a {TypeError} if there's any mistyped items (attributes)
         """
         try:
-            mdh = Histogram(dict_['name'],
-                            dict_['xmax'],
-                            dict_['xmin'],
-                            dict_['overflow'],
-                            dict_['underflow'],
-                            dict_['nan_count'],
-                            dict_['bin_values'])
+            mdh = I3Histogram(dict_['name'],
+                              dict_['xmax'],
+                              dict_['xmin'],
+                              dict_['overflow'],
+                              dict_['underflow'],
+                              dict_['nan_count'],
+                              dict_['bin_values'])
         except KeyError as e:
             raise AttributeError(f"histogram has missing field {str(e)}")
 
@@ -151,7 +151,7 @@ class Histogram:
         dict_ = copy.deepcopy(vars(self))
 
         # remove class-property prefix from keys
-        prefix = '_Histogram__'
+        prefix = '_I3Histogram__'
         properties = [k for k in dict_ if k.startswith(prefix)]
         for p in properties:
             dict_[p[len(prefix):]] = dict_.pop(p)
@@ -164,6 +164,22 @@ class Histogram:
 
         return dict_
 
+    def __getstate__(self) -> dict:
+        """Return state as dict.
+
+        Essentially, a wrapper around to_dict().
+        """
+        state = self.to_dict()
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        """Set instance attributes to those in `state`.
+
+        Essentially, a wrapper around from_dict().
+        """
+        newObj = I3Histogram.from_dict(state)
+        self.__dict__.update(newObj.__dict__)
+
     def add_to_history(self, pseudo_first=False):
         """Append epoch timestamp to `history`.
 
@@ -174,7 +190,7 @@ class Histogram:
             self.history = [0.0]  # must be old histogram, so it didn't come with a history
         self.history.append(time.time())
 
-    def update(self, new_histo: 'Histogram') -> None:
+    def update(self, new_histo: 'I3Histogram') -> None:
         """Update/increment/replace attribute values with those in `new_histo`.
 
         Append epoch timestamp to `history`.

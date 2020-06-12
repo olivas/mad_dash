@@ -1,18 +1,18 @@
-"""Test the api.Histogram class."""
+"""Test the api.I3Histogram class."""
 
 from typing import List, Union
 
 import pytest  # type: ignore
 
 # local imports
-import maddash_api as api
+import api
 
 
 class TestAPIHistogram:
-    """Unit test the api.Histogram class."""
+    """Unit test the api.I3Histogram class."""
 
     @staticmethod
-    def assert_values(histogram: api.Histogram, name: str, xmax: Union[int, float],
+    def assert_values(histogram: api.I3Histogram, name: str, xmax: Union[int, float],
                       xmin: Union[int, float], overflow: int, underflow: int, nan_count: int,
                       bin_values: List[int]):
         """Assert each value is in the histogram."""
@@ -34,7 +34,7 @@ class TestAPIHistogram:
         nan_count = 12
         bin_values = [0, 2, 4, 5, 9, 8, 5]
 
-        histogram = api.Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
         TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                        nan_count, bin_values)
 
@@ -52,7 +52,7 @@ class TestAPIHistogram:
         nan_count = 12
         bin_values = [0, 2, 4.02, 5, 9.486, 8, 5]
 
-        histogram = api.Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
         TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                        nan_count, bin_values)
 
@@ -63,7 +63,7 @@ class TestAPIHistogram:
     def test_20(self):
         """Fail-test name attribute."""
         with pytest.raises(NameError):
-            _ = api.Histogram('filelist', 0, 0, 0, 0, 0, [])
+            _ = api.I3Histogram('filelist', 0, 0, 0, 0, 0, [])
 
     def test_30(self):
         """Test from_dict() and to_dict()."""
@@ -88,7 +88,7 @@ class TestAPIHistogram:
             'extra_value': extra_value
         }
 
-        histogram = api.Histogram.from_dict(dict_)
+        histogram = api.I3Histogram.from_dict(dict_)
         TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                        nan_count, bin_values)
 
@@ -101,7 +101,7 @@ class TestAPIHistogram:
         addl = ['a']
         keeps = 2.0
 
-        histo = api.Histogram('test', 0, 0, 0, 0, 0, [])
+        histo = api.I3Histogram('test', 0, 0, 0, 0, 0, [])
         histo.extra = extra
         histo.addl = addl
         histo.keeps = keeps
