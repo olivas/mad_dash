@@ -122,7 +122,7 @@ class I3Histogram:
         Arguments:
             dict_ -- the dictionary to be morphed
 
-        Raises a {NameError} if there name field is illegal
+        Raises a {NameError} if the name field is illegal
         Raises a {AttributeError} if there's any extra keys (fields)
         Raises a {TypeError} if there's any mistyped items (attributes)
         """
