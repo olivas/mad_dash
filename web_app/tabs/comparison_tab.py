@@ -113,7 +113,7 @@ def set_collection_options(database_name: str) -> List[Dict[str, str]]:
 def update_histogram_dropdown_options(database_name: str, collection_names: List[str]) -> List[Dict[str, str]]:
     """Return the collections' mutual list of histograms for the dropdown menu."""
     if not collection_names:
-        collection_names = []
+        return []
 
     all_histogram_names = [db.get_histogram_names(c, database_name) for c in collection_names]
 
@@ -129,13 +129,14 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
 @app.callback(
     Output('plot-histogram-tab2', 'figure'),
     [Input('histogram-dropdown-tab2', 'value'),
+     Input('histogram-dropdown-tab2', 'options'),
      Input('toggle-log-tab2', 'on'),
      Input('database-name-dropdown-tab2', 'value'),
      Input('collections-dropdown-tab2', 'value')])
-def update_histogram(histogram_name: str, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
+def update_histogram(histogram_name: str, histogram_options: list, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
     """Plot each collection's histograms on the same plot."""
-    if not collection_names:
-        collection_names = []
+    if not collection_names or not histogram_options:
+        return hc.mdh_to_plotly(None, y_log=log, no_title=True)
 
     all_histograms = [db.get_histogram(histogram_name, c, database_name) for c in collection_names]
 
@@ -151,7 +152,7 @@ def update_histogram(histogram_name: str, log: bool, database_name: str, collect
                Input('collections-dropdown-tab2', 'value')])
 def compare_collections(database_name: str, collection_names: List[str]) -> List[html.Tr]:
     if not collection_names:
-        collection_names = []
+        return []
 
     print("compare_collections: Comparing...")
     headers = ['Histogram', 'Chi2', 'KS', 'AD', 'Result', 'Notes']
