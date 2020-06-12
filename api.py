@@ -164,22 +164,6 @@ class I3Histogram:
 
         return dict_
 
-    def __getstate__(self) -> dict:
-        """Return state as dict.
-
-        Essentially, a wrapper around to_dict().
-        """
-        state = self.to_dict()
-        return state
-
-    def __setstate__(self, state: dict) -> None:
-        """Set instance attributes to those in `state`.
-
-        Essentially, a wrapper around from_dict().
-        """
-        newObj = I3Histogram.from_dict(state)
-        self.__dict__.update(newObj.__dict__)
-
     def add_to_history(self, pseudo_first=False):
         """Append epoch timestamp to `history`.
 

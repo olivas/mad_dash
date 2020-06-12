@@ -1,5 +1,6 @@
-"""Test the api.I3Histogram class."""
+"""Test the api.py."""
 
+import pickle
 from typing import List, Union
 
 import pytest  # type: ignore
@@ -8,7 +9,7 @@ import pytest  # type: ignore
 import api
 
 
-class TestAPIHistogram:
+class TestI3Histogram:
     """Unit test the api.I3Histogram class."""
 
     @staticmethod
@@ -35,8 +36,8 @@ class TestAPIHistogram:
         bin_values = [0, 2, 4, 5, 9, 8, 5]
 
         histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                       nan_count, bin_values)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         history = [200, 500]
         histogram.history = history
@@ -53,8 +54,8 @@ class TestAPIHistogram:
         bin_values = [0, 2, 4.02, 5, 9.486, 8, 5]
 
         histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                       nan_count, bin_values)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         history = [10.25, 300]
         histogram.history = history
@@ -89,8 +90,8 @@ class TestAPIHistogram:
         }
 
         histogram = api.I3Histogram.from_dict(dict_)
-        TestAPIHistogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
-                                       nan_count, bin_values)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         out_dict = histogram.to_dict()
         assert dict_ == out_dict
