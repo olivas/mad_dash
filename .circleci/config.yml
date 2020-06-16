@@ -15,7 +15,7 @@ jobs:
       - run:
           command: pip install -r db_server/requirements.txt && python3 -m db_server
           background: true
-      - run: pip install -r db_server/requirements.txt && pytest
+      - run: sleep 30 && pip install -r db_server/requirements.txt && pytest
 
 workflows:
   build_and_test:
