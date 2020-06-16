@@ -12,7 +12,9 @@ jobs:
         command: [python, test_server.py]
     steps:
       - checkout
-      - run: pip install -r db_server/requirements.txt && python3 -m db_server
+      - run:
+          command: pip install -r db_server/requirements.txt && python3 -m db_server
+          background: true
       - run: pip install -r db_server/requirements.txt && pytest
 
 workflows:
