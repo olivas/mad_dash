@@ -6,7 +6,7 @@ jobs:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: pytest
+      - run: pip install -r db_server/requirements.txt && pytest
 
 workflows:
   build_and_test:
