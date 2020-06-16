@@ -1,0 +1,14 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run: pytest
+
+workflows:
+  build_and_test:
+    jobs:
+      - test
