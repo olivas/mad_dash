@@ -1,7 +1,15 @@
 version: 2.1
 
 jobs:
-  test:
+
+  unit:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run: pip install -r db_server/requirements.txt && pytest tests/unit
+
+  integrate:
     docker:
       - image: circleci/python:3.8
       - image: circleci/mongo:3.7.9-ram
@@ -15,9 +23,10 @@ jobs:
       - run:
           command: pip install -r db_server/requirements.txt && python3 -m db_server
           background: true
-      - run: sleep 30 && pip install -r db_server/requirements.txt && pytest
+      - run: sleep 30 && pip install -r db_server/requirements.txt && pytest tests/integration
 
 workflows:
   build_and_test:
     jobs:
-      - test
+      - unit
+      - integrate
