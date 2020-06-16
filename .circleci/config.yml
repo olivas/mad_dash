@@ -4,10 +4,12 @@ jobs:
   test:
     docker:
       - image: circleci/python:3.8
-      - image: circleci/mongo:3.7.9-ram
-      - image: wipac/token-service:latest
+      #- image: circleci/mongo:3.7.9-ram
+      #- image: wipac/token-service:latest
     steps:
       - checkout
+      - run: ./db_server/resources/mongo_test_server.sh
+      - run: ./db_server/resources/token_test_server.sh
       - run: pip install -r db_server/requirements.txt && python3 -m db_server
       - run: pip install -r db_server/requirements.txt && pytest
 
