@@ -9,6 +9,9 @@ import dash_html_components as html  # type: ignore
 import plotly.graph_objs as go  # type: ignore
 from dash.dependencies import Input, Output, State  # type: ignore
 
+# local imports
+import api
+
 from ..config import app
 from ..styles import (CENTERED_30, CENTERED_100, HIDDEN, SHORT_HR,
                       STAT_LABEL, STAT_NUMBER, WIDTH_30, WIDTH_45)
@@ -239,9 +242,12 @@ def layout() -> html.Div:
 
 @app.callback(
     Output('collection-stats-tab1', 'style'),
-    [Input('collection-name-dropdown-tab1', 'value')])
-def hide_show_collection_stats(collection_name: str) -> dict:
-    """Hide/show the collection stats div, depending on whether there is a collection selected."""
+    [Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
+def hide_show_collection_stats(collection_name: str) -> Dict[str, str]:
+    """Hide/show the collection stats div.
+
+    Depends on whether there is a collection selected.
+    """
     if not collection_name:
         return HIDDEN
     return {'margin-top': '3%', 'margin-bottom': '9%'}
@@ -255,7 +261,7 @@ def hide_show_collection_stats(collection_name: str) -> dict:
     Output('filelist-modal-tab1', 'is_open'),
     [Input('open-filelist-modal-tab1', 'n_clicks'),
      Input('close-filelist-modal-tab1', 'n_clicks')],
-    [State('filelist-modal-tab1', 'is_open')])
+    [State('filelist-modal-tab1', 'is_open')])  # type: ignore
 def filelist_modal_open_close(n1, n2, is_open):
     """Open/close the filelist modal."""
     if n1 or n2:
@@ -265,7 +271,7 @@ def filelist_modal_open_close(n1, n2, is_open):
 
 @app.callback(
     Output('filelist-modal-header-tab1', 'children'),
-    [Input('collection-name-dropdown-tab1', 'value')])
+    [Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def filelist_modal_header(collection_name: str) -> str:
     """Return header for the filelist modal."""
     return f"Files in {collection_name}"
@@ -274,7 +280,7 @@ def filelist_modal_header(collection_name: str) -> str:
 @app.callback(
     Output('filelist-list-tab1', 'children'),
     [Input('database-name-dropdown-tab1', 'value'),
-     Input('collection-name-dropdown-tab1', 'value')])
+     Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def filelist_modal_list(database_name: str, collection_name: str) -> Union[List[dbc.ListGroupItem], str]:
     """Return list of files for the filelist modal."""
     filelist = db.get_filelist(collection_name, database_name)
@@ -288,7 +294,7 @@ def filelist_modal_list(database_name: str, collection_name: str) -> Union[List[
 
 
 @app.callback(Output('collection-name-dropdown-tab1', 'options'),
-              [Input('database-name-dropdown-tab1', 'value')])
+              [Input('database-name-dropdown-tab1', 'value')])  # type: ignore
 def update_collection_options(database_name: str) -> List[Dict[str, str]]:
     """Return the collections available for selection in the dropdown menu."""
     collection_names = db.get_collection_names(database_name)
@@ -301,7 +307,7 @@ def update_collection_options(database_name: str) -> List[Dict[str, str]]:
 
 @app.callback(Output('files-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
-               Input('collection-name-dropdown-tab1', 'value')])
+               Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def update_histogram_filelist_number(database_name: str, collection_name: str) -> str:
     """Return number of files in the collection."""
     filelist = db.get_filelist(collection_name, database_name)
@@ -310,7 +316,7 @@ def update_histogram_filelist_number(database_name: str, collection_name: str) -
 
 
 @app.callback(Output('files-label-tab1', 'children'),
-              [Input('files-number-tab1', 'children')])
+              [Input('files-number-tab1', 'children')])  # type: ignore
 def update_histogram_filelist_label(files: str) -> str:
     """Return label for number of files in the collection."""
     if files == '1':
@@ -324,7 +330,7 @@ def update_histogram_filelist_label(files: str) -> str:
 
 @app.callback(Output('n-histograms-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
-               Input('collection-name-dropdown-tab1', 'value')])
+               Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def update_n_histograms_number(database_name: str, collection_name: str) -> str:
     """Return number of histograms in the collection."""
     histogram_names = db.get_histogram_names(collection_name, database_name)
@@ -332,7 +338,7 @@ def update_n_histograms_number(database_name: str, collection_name: str) -> str:
 
 
 @app.callback(Output('n-histograms-label-tab1', 'children'),
-              [Input('n-histograms-number-tab1', 'children')])
+              [Input('n-histograms-number-tab1', 'children')])  # type: ignore
 def update_n_histograms_label(histos: str) -> str:
     """Return label for number of histograms in the collection."""
     if histos == '1':
@@ -346,7 +352,7 @@ def update_n_histograms_label(histos: str) -> str:
 
 @app.callback(Output('n-empty-histograms-number-tab1', 'children'),
               [Input('database-name-dropdown-tab1', 'value'),
-               Input('collection-name-dropdown-tab1', 'value')])
+               Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def update_n_empty_histograms_number(database_name: str, collection_name: str) -> str:
     """Return number of empty histograms in the collection."""
     histograms = db.get_histograms(collection_name, database_name,)
@@ -357,7 +363,7 @@ def update_n_empty_histograms_number(database_name: str, collection_name: str) -
 
 
 @app.callback(Output('n-empty-histograms-label-tab1', 'children'),
-              [Input('n-empty-histograms-number-tab1', 'children')])
+              [Input('n-empty-histograms-number-tab1', 'children')])  # type: ignore
 def update_n_empty_histograms_label(empty_histos: str) -> str:
     """Return label for number of empty histograms in the collection."""
     if empty_histos == '1':
@@ -371,7 +377,7 @@ def update_n_empty_histograms_label(empty_histos: str) -> str:
 
 @app.callback(Output('histogram-dropdown-tab1', 'options'),
               [Input('database-name-dropdown-tab1', 'value'),
-               Input('collection-name-dropdown-tab1', 'value')])
+               Input('collection-name-dropdown-tab1', 'value')])  # type: ignore
 def update_histogram_dropdown_options(database_name: str, collection_name: str) -> List[Dict[str, str]]:
     """Return the histograms available for selection in the dropdown menu."""
     if not collection_name:
@@ -379,7 +385,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
 
     histograms = db.get_histograms(collection_name, database_name)
 
-    def make_label(h):
+    def make_label(h: api.I3Histogram) -> str:
         if any(h.bin_values):
             return h.name
         return f"{h.name} (empty)"
@@ -392,7 +398,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
     [Input('histogram-dropdown-tab1', 'value'),
      Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-tab1', 'on')])
+     Input('toggle-log-tab1', 'on')])  # type: ignore
 def update_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
@@ -412,7 +418,7 @@ def _plot_default_histogram(database_name: str, collection_name: str, histo_name
     Output('one-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_one_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'PrimaryEnergy', log)
@@ -422,7 +428,7 @@ def update_default_histograms_one_one(database_name: str, collection_name: str, 
     Output('one-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_one_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'PrimaryZenith', log)
@@ -432,7 +438,7 @@ def update_default_histograms_one_two(database_name: str, collection_name: str, 
     Output('one-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_one_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'PrimaryCosZenith', log)
@@ -442,7 +448,7 @@ def update_default_histograms_one_three(database_name: str, collection_name: str
     Output('two-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_two_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'CascadeEnergy', log)
@@ -452,7 +458,7 @@ def update_default_histograms_two_one(database_name: str, collection_name: str, 
     Output('two-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_two_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'PulseTime', log)
@@ -462,7 +468,7 @@ def update_default_histograms_two_two(database_name: str, collection_name: str, 
     Output('two-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_two_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'SecondaryMultiplicity', log)
@@ -472,7 +478,7 @@ def update_default_histograms_two_three(database_name: str, collection_name: str
     Output('three-one', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_three_one(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'InIceDOMOccupancy', log)
@@ -482,7 +488,7 @@ def update_default_histograms_three_one(database_name: str, collection_name: str
     Output('three-two', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_three_two(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'InIceDOMLaunchTime', log)
@@ -492,7 +498,7 @@ def update_default_histograms_three_two(database_name: str, collection_name: str
     Output('three-three', 'figure'),
     [Input('database-name-dropdown-tab1', 'value'),
      Input('collection-name-dropdown-tab1', 'value'),
-     Input('toggle-log-default-tab1', 'on')])
+     Input('toggle-log-default-tab1', 'on')])  # type: ignore
 def update_default_histograms_three_three(database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot a default histogram."""
     return _plot_default_histogram(database_name, collection_name, 'LogQtot', log)

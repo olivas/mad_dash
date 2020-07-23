@@ -1,6 +1,7 @@
 """Contains functions for querying the database(s)."""
 
 import logging
+import typing
 from typing import List, Optional
 from urllib.parse import urljoin
 
@@ -23,7 +24,7 @@ def create_simprod_dbms_rest_connection() -> RestClient:
     return md_rc
 
 
-def _log(url, database="", collection="", histogram=""):
+def _log(url: str, database: str = "", collection: str = "", histogram: str = "") -> None:
     db_str = coll_str = histo_str = ''
     if database:
         db_str = f"(db: {database})"
@@ -107,7 +108,7 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
     _log(url, database_name, collection_name, histogram_name)
     histogram = response['histogram']
     mdh = api.I3Histogram.from_dict(histogram)
-    mdh.collection = collection_name
+    mdh.collection = collection_name  # type: ignore
     return mdh
 
 
@@ -122,4 +123,4 @@ def get_filelist(collection_name: str, database_name: str) -> List[str]:
     response = md_rc.request_seq('GET', url, coll_request_body)
 
     _log(url, database_name, collection_name)
-    return response['files']
+    return typing.cast(List[str], response['files'])

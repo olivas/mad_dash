@@ -1,7 +1,7 @@
 """Routes handlers for the Mad-Dash REST API server interface."""
 
 import time
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import tornado.web
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
@@ -12,6 +12,11 @@ from rest_tools.client import json_decode  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 
 from .config import AUTH_PREFIX, EXCLUDE_DBS
+
+# types
+MongoHistogram = Dict[str, Any]
+Num = Union[int, float]
+
 
 REMOVE_ID = {"_id": False}
 
@@ -79,8 +84,9 @@ class MadDashMotorClient():
 
         return collection
 
-    async def get_histogram_dicts_in_collection(self, database_name: str, collection_name: str) -> List[dict]:
-        """Return collection's histogram dicts."""
+    async def get_mongo_histograms_in_collection(self, database_name: str, collection_name: str
+                                                 ) -> List[Dict[str, MongoHistogram]]:
+        """Return collection's histograms as dicts."""
         collection = self.get_collection(database_name, collection_name)
 
         objs = []
@@ -93,10 +99,10 @@ class MadDashMotorClient():
 # -----------------------------------------------------------------------------
 
 
-class BaseMadDashHandler(RestHandler):
+class BaseMadDashHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMadDashHandler is a RestHandler for all Mad-Dash routes."""
 
-    def initialize(self, motor_client: MotorClient, *args, **kwargs) -> None:  # pylint: disable=W0221
+    def initialize(self, motor_client: MotorClient, *args: Any, **kwargs: Any) -> None:  # pylint: disable=W0221
         """Initialize a BaseMadDashHandler object."""
         super(BaseMadDashHandler, self).initialize(*args, **kwargs)
         # self.motor_client = motor_client  # pylint: disable=W0201
@@ -127,7 +133,7 @@ class BaseMadDashHandler(RestHandler):
 # -----------------------------------------------------------------------------
 
 
-class MainHandler(BaseMadDashHandler):
+class MainHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """MainHandler is a BaseMadDashHandler that handles the root route."""
 
     def get(self) -> None:
@@ -138,10 +144,10 @@ class MainHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class DatabasesNamesHandler(BaseMadDashHandler):
+class DatabasesNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of databases in mongodb client."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_names = await self.md_mc.get_database_names()
@@ -152,10 +158,10 @@ class DatabasesNamesHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class CollectionsNamesHandler(BaseMadDashHandler):
+class CollectionsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of collections from specified database."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_name = self.get_required_argument('database')
@@ -169,17 +175,18 @@ class CollectionsNamesHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
+class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of histograms' names."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histo_dicts = await self.md_mc.get_histogram_dicts_in_collection(database_name, collection_name)
-        histogram_names = [c['name'] for c in histo_dicts]
+        mongo_histo = await self.md_mc.get_mongo_histograms_in_collection(database_name,
+                                                                          collection_name)
+        histogram_names = [c['name'] for c in mongo_histo]
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -188,44 +195,47 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class CollectionsHistogramsHandler(BaseMadDashHandler):
+class CollectionsHistogramsHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of histogram objects in given collection."""
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        histo_dicts = await self.md_mc.get_histogram_dicts_in_collection(database_name, collection_name)
+        mongo_histo = await self.md_mc.get_mongo_histograms_in_collection(database_name,
+                                                                          collection_name)
 
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histograms': histo_dicts})
+                    'histograms': mongo_histo})
 
 
 # -----------------------------------------------------------------------------
 
 
-class HistogramHandler(BaseMadDashHandler):
+class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str, remove_id: bool=True) -> Optional[api.I3Histogram]:
+    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str,
+                            remove_id: bool = True) -> Optional[api.I3Histogram]:
         """Return histogram object."""
         collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
-            histogram_dict = await collection.find_one({'name': histogram_name}, projection=REMOVE_ID)
+            mongo_histogram = await collection.find_one({'name': histogram_name},
+                                                        projection=REMOVE_ID)
         else:
-            histogram_dict = await collection.find_one({'name': histogram_name})
+            mongo_histogram = await collection.find_one({'name': histogram_name})
 
-        if not histogram_dict:
+        if not mongo_histogram:
             return None
 
-        histogram = api.I3Histogram.from_dict(histogram_dict)
+        histogram = api.I3Histogram.from_dict(mongo_histogram)
         return histogram
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_name = self.get_required_argument('database')
@@ -241,7 +251,8 @@ class HistogramHandler(BaseMadDashHandler):
                     'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
                     'history': histogram.history})
 
-    async def update_histogram(self, database_name: str, collection_name: str, histogram: api.I3Histogram) -> None:
+    async def update_histogram(self, database_name: str, collection_name: str,
+                               histogram: api.I3Histogram) -> None:
         """Update the histogram's values. Assumes the histogram already exits.
 
         Write back to output buffer.
@@ -255,8 +266,8 @@ class HistogramHandler(BaseMadDashHandler):
 
         # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        histo_dict = db_histo.to_dict()
-        result = await collection.replace_one({'_id': histo_dict['_id']}, histo_dict)
+        mongo_histo = db_histo.to_dict()
+        result = await collection.replace_one({'_id': mongo_histo['_id']}, mongo_histo)
 
         # write
         self.write({'database': database_name,
@@ -265,7 +276,8 @@ class HistogramHandler(BaseMadDashHandler):
                     'history': db_histo.history,
                     'updated': result.acknowledged})
 
-    async def insert_histogram(self, database_name: str, collection_name: str, histogram: api.I3Histogram) -> None:
+    async def insert_histogram(self, database_name: str, collection_name: str,
+                               histogram: api.I3Histogram) -> None:
         """Insert the novel histogram.
 
         Write back to output buffer.
@@ -283,21 +295,21 @@ class HistogramHandler(BaseMadDashHandler):
                     'history': histogram.history,
                     'updated': False})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
-        histogram_dict = self.get_required_argument('histogram')
+        mongo_histogram = self.get_required_argument('histogram')
         update = self.get_optional_argument('update', default=False)
 
         # check reserved key(s)
-        if 'history' in histogram_dict:
+        if 'history' in mongo_histogram:
             raise tornado.web.HTTPError(400, reason="histogram cannot define the field 'history'")
 
         # check type and structure
         try:
-            histogram = api.I3Histogram.from_dict(histogram_dict)
+            histogram = api.I3Histogram.from_dict(mongo_histogram)
         except (AttributeError, TypeError, NameError) as e:
             raise tornado.web.HTTPError(400, reason=str(e))
 
@@ -317,10 +329,11 @@ class HistogramHandler(BaseMadDashHandler):
 # -----------------------------------------------------------------------------
 
 
-class FileNamesHandler(BaseMadDashHandler):
+class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of filenames for given collection."""
 
-    async def get_filelist_attributes(self, database_name: str, collection_name: str, remove_id: bool=True) -> Tuple[Any, List[str], List[Union[int, float]]]:
+    async def get_filelist_attributes(self, database_name: str, collection_name: str,
+                                      remove_id: bool = True) -> Tuple[Any, List[str], List[Num]]:
         """Return filelist-dict's id, filenames, and history in collection.
 
         Raise {TypeError} if filelist-dict not in collection.
@@ -337,7 +350,7 @@ class FileNamesHandler(BaseMadDashHandler):
 
         return dict_['_id'], dict_['files'], history
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
         """Handle GET."""
         database_name = self.get_required_argument('database')
@@ -354,12 +367,15 @@ class FileNamesHandler(BaseMadDashHandler):
                     'files': filenames,
                     'history': history})
 
-    async def update_filelist(self, database_name: str, collection_name: str, new_filenames: List[str]) -> None:
+    async def update_filelist(self, database_name: str, collection_name: str,
+                              new_filenames: List[str]) -> None:
         """Update (extends) filelist. Assumes the filelist already exits.
 
         Write back to output buffer.
         """
-        _id, prev_filenames, history = await self.get_filelist_attributes(database_name, collection_name, remove_id=False)
+        _id, prev_filenames, history = await self.get_filelist_attributes(database_name,
+                                                                          collection_name,
+                                                                          remove_id=False)
 
         filenames = sorted(set(new_filenames) | set(prev_filenames))
 
@@ -381,7 +397,8 @@ class FileNamesHandler(BaseMadDashHandler):
                     'history': history,
                     'updated': result.acknowledged})
 
-    async def insert_filelist(self, database_name: str, collection_name: str, filenames: List[str]) -> None:
+    async def insert_filelist(self, database_name: str, collection_name: str, filenames: List[str]
+                              ) -> None:
         """Insert novel filelist object.
 
         Write back to output buffer.
@@ -401,7 +418,7 @@ class FileNamesHandler(BaseMadDashHandler):
                     'history': history,
                     'updated': False})
 
-    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])
+    @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])  # type: ignore
     async def post(self) -> None:
         """Handle POST."""
         database_name = self.get_required_argument('database')

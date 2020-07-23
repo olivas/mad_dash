@@ -2,14 +2,18 @@
 
 import copy
 import time
-from typing import Any, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+# types
+Num = Union[int, float]
 
 
-class I3Histogram:
+class I3Histogram:  # pylint: disable=R0902
     """A representation of a histogram."""
 
-    def __init__(self, name: str, xmax: Union[int, float], xmin: Union[int, float],
-                 overflow: int, underflow: int, nan_count: int, bin_values: List[int]):
+    # pylint: disable=R0913
+    def __init__(self, name: str, xmax: Num, xmin: Num, overflow: int, underflow: int,
+                 nan_count: int, bin_values: List[Num]) -> None:
         self.name = name
         self.xmax = xmax
         self.xmin = xmin
@@ -22,7 +26,7 @@ class I3Histogram:
 
     @staticmethod
     def _check_type(value: Any, type_: Union[type, Tuple[type, ...]],
-                    member_type: Union[type, Tuple[type, ...]]=None) -> None:
+                    member_type: Optional[Union[type, Tuple[type, ...]]] = None) -> None:
         """Raise TypeError if `value` not `type_`."""
         if not isinstance(value, type_):
             raise TypeError(f"Attribute should be {type_} not {type(value)}")
@@ -37,29 +41,29 @@ class I3Histogram:
         return self.__name
 
     @name.setter
-    def name(self, value) -> None:
+    def name(self, value: str) -> None:
         if value == 'filelist':
             raise NameError("histogram cannot be named 'filelist'")
         I3Histogram._check_type(value, str)
         self.__name = value
 
     @property
-    def xmax(self) -> Union[int, float]:
+    def xmax(self) -> Num:
         """Histogram x-max value."""
         return self.__xmax
 
     @xmax.setter
-    def xmax(self, value: Union[int, float]) -> None:
+    def xmax(self, value: Num) -> None:
         I3Histogram._check_type(value, (int, float))
         self.__xmax = value
 
     @property
-    def xmin(self) -> Union[int, float]:
+    def xmin(self) -> Num:
         """Histogram x-min value."""
         return self.__xmin
 
     @xmin.setter
-    def xmin(self, value: Union[int, float]) -> None:
+    def xmin(self, value: Num) -> None:
         I3Histogram._check_type(value, (int, float))
         self.__xmin = value
 
@@ -94,27 +98,27 @@ class I3Histogram:
         self.__nan_count = value
 
     @property
-    def bin_values(self) -> list:
+    def bin_values(self) -> List[Num]:
         """Histogram data bin values."""
         return self.__bin_values
 
     @bin_values.setter
-    def bin_values(self, value: list) -> None:
+    def bin_values(self, value: List[Num]) -> None:
         I3Histogram._check_type(value, list, (int, float))
         self.__bin_values = value
 
     @property
-    def history(self) -> list:
+    def history(self) -> List[Num]:
         """Histogram database-write history."""
         return self.__history
 
     @history.setter
-    def history(self, value: list) -> None:
+    def history(self, value: List[Num]) -> None:
         I3Histogram._check_type(value, list, (int, float))
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: dict) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
+    def from_dict(dict_: Dict[str, Any]) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
         """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
@@ -146,7 +150,7 @@ class I3Histogram:
 
         return mdh
 
-    def to_dict(self, exclude: List[str] = None) -> dict:
+    def to_dict(self, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
         """Return attributes as dictionary."""
         dict_ = copy.deepcopy(vars(self))
 
@@ -164,7 +168,7 @@ class I3Histogram:
 
         return dict_
 
-    def add_to_history(self, pseudo_first=False):
+    def add_to_history(self, pseudo_first: bool = False) -> None:
         """Append epoch timestamp to `history`.
 
         Keyword arguments:

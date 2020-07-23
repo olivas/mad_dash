@@ -9,7 +9,7 @@ import plotly.graph_objs as go  # type: ignore
 import api
 
 
-def _has_all_data(histograms: list) -> bool:
+def _has_all_data(histograms: List[api.I3Histogram]) -> bool:
     return any(histograms) and all(histograms)  # deal breakers: empty list, 1+ empty members
 
 
@@ -72,14 +72,17 @@ def _get_data(histograms: List[api.I3Histogram]) -> Union[List[go.Bar], None]:
 
         data = []
         for histo in histograms:
+            name = histo.name if not use_collection_names else histo.collection  # type: ignore
             data.append(go.Bar(x=x_values,
                                y=histo.bin_values,
                                text=text,
-                               name=histo.name if not use_collection_names else histo.collection))
+                               name=name))
     return data
 
 
-def mdh_to_plotly(histograms: Union[Optional[api.I3Histogram], List[api.I3Histogram]], title: str=None, y_log: bool=False, alert_no_data: bool=False, no_title: bool=False) -> go.Figure:
+def mdh_to_plotly(histograms: Union[Optional[api.I3Histogram], List[api.I3Histogram]],
+                  title: Optional[str] = None, y_log: bool = False, alert_no_data: bool = False,
+                  no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with a n overlapped histograms.
 
     If the contents in `histograms` are not complete, ignore any other data.

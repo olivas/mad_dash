@@ -23,6 +23,7 @@ A REST server that interfaces a local MongoDB server
     ./db_server/resources/token_test_server.sh
 
 ### Running the Server
+    . mad_dash_db_server/bin/activate
     python -m db_server
 
 

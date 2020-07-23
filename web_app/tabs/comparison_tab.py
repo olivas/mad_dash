@@ -95,7 +95,7 @@ def layout() -> html.Div:
 
 
 @app.callback(Output('collections-dropdown-tab2', 'options'),
-              [Input('database-name-dropdown-tab2', 'value')])
+              [Input('database-name-dropdown-tab2', 'value')])  # type: ignore
 def set_collection_options(database_name: str) -> List[Dict[str, str]]:
     """Return the list of collections for the dropdown menu."""
     collection_names = db.get_collection_names(database_name)
@@ -109,9 +109,9 @@ def set_collection_options(database_name: str) -> List[Dict[str, str]]:
 
 @app.callback(Output('histogram-dropdown-tab2', 'options'),
               [Input('database-name-dropdown-tab2', 'value'),
-               Input('collections-dropdown-tab2', 'value')])
+               Input('collections-dropdown-tab2', 'value')])  # type: ignore
 def update_histogram_dropdown_options(database_name: str, collection_names: List[str]) -> List[Dict[str, str]]:
-    """Return the collections' mutual list of histograms for the dropdown menu."""
+    """Return the collections' mutual list of histograms for dropdown menu."""
     if not collection_names:
         return []
 
@@ -132,8 +132,9 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
      Input('histogram-dropdown-tab2', 'options'),
      Input('toggle-log-tab2', 'on'),
      Input('database-name-dropdown-tab2', 'value'),
-     Input('collections-dropdown-tab2', 'value')])
-def update_histogram(histogram_name: str, histogram_options: list, log: bool, database_name: str, collection_names: List[str]) -> go.Figure:
+     Input('collections-dropdown-tab2', 'value')])  # type: ignore
+def update_histogram(histogram_name: str, histogram_options: List[str], log: bool,
+                     database_name: str, collection_names: List[str]) -> go.Figure:
     """Plot each collection's histograms on the same plot."""
     if not collection_names or not histogram_options:
         return hc.mdh_to_plotly(None, y_log=log, no_title=True)
@@ -149,7 +150,7 @@ def update_histogram(histogram_name: str, histogram_options: list, log: bool, da
 
 @app.callback(Output('collection-comparison-result-tab2', 'children'),
               [Input('database-name-dropdown-tab2', 'value'),
-               Input('collections-dropdown-tab2', 'value')])
+               Input('collections-dropdown-tab2', 'value')])  # type: ignore
 def compare_collections(database_name: str, collection_names: List[str]) -> List[html.Tr]:
     if not collection_names:
         return []

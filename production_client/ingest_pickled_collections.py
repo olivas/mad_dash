@@ -6,7 +6,7 @@ import logging
 import os
 import pickle
 import re
-from typing import Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, Union
 from urllib.parse import urljoin
 
 import requests
@@ -14,8 +14,15 @@ import requests
 # local imports
 from rest_tools.client import RestClient  # type: ignore
 
+# type aliases
+FilelistList = List[str]
+FilelistDict = Dict[str, Union[Any, FilelistList]]
+Histogram = Dict[str, Any]
+Collection = Dict[str, Union[FilelistDict, Histogram]]
 
-async def post_filelist(rc: RestClient, filelist: list, collection_name: str, database_name: str, update: bool=False) -> None:
+
+async def post_filelist(rc: RestClient, filelist: FilelistList, collection_name: str,
+                        database_name: str, update: bool = False) -> None:
     """POST filelist to collection in simprod mongo DBMS."""
     post_body = {'database': database_name,
                  'collection': collection_name,
@@ -26,7 +33,7 @@ async def post_filelist(rc: RestClient, filelist: list, collection_name: str, da
     logging.debug(f"POST response: {post_resp}.")
 
 
-def get_filelist(collection: dict, collection_name: str) -> list:
+def get_filelist(collection: Collection, collection_name: str) -> FilelistList:
     """Get the filelist in the collection."""
     filelist = collection['filelist']['files']
     if filelist:
@@ -36,7 +43,8 @@ def get_filelist(collection: dict, collection_name: str) -> list:
     return filelist
 
 
-async def post_histogram(rc: RestClient, histo: dict, collection_name: str, database_name: str, update: bool=False) -> None:
+async def post_histogram(rc: RestClient, histo: Histogram, collection_name: str, database_name: str,
+                         update: bool = False) -> None:
     """POST histogram to collection in simprod mongo DBMS."""
     post_body = {'database': database_name,
                  'collection': collection_name,
@@ -47,7 +55,7 @@ async def post_histogram(rc: RestClient, histo: dict, collection_name: str, data
     logging.debug(f"POST response: {post_resp}.")
 
 
-def get_each_histogram(collection: dict, collection_name: str) -> Iterator[dict]:
+def get_each_histogram(collection: Collection, collection_name: str) -> Iterator[Histogram]:
     """Get all histograms in collection."""
     for k, v in collection.items():
         if k == 'filelist':
@@ -80,15 +88,15 @@ def get_all_pickles(paths: List[str], recurse: bool = False) -> List[str]:
     return pickles
 
 
-def get_each_collection(paths: List[str], recurse: bool = False) -> Iterator[Tuple[dict, str]]:
+def get_each_collection(paths: List[str], recurse: bool = False) -> Iterator[Tuple[Collection, str]]:
     """Generate histograms and file-lists from pickles at given paths."""
     pickles = get_all_pickles(paths, recurse=recurse)
 
     for p in pickles:
-        # depickle
+        # unpickle
         with open(p, 'rb') as f:
             collection = pickle.load(f)
-        logging.debug(f"Depickled collection at {p}.")
+        logging.debug(f"Unpickled collection at {p}.")
         # get name
         name = re.findall(r'/([^/]*).pkl$', p)[0]
         logging.debug(f"Name for {p} is {name}.")
@@ -97,7 +105,7 @@ def get_each_collection(paths: List[str], recurse: bool = False) -> Iterator[Tup
         yield (collection, name)
 
 
-def get_rest_client(dbms_url, token_url):
+def get_rest_client(dbms_url: str, token_url: str) -> RestClient:
     """Get database REST client."""
     token_json = requests.get(urljoin(token_url, 'token?scope=maddash:production')).json()
     rc = RestClient(dbms_url, token=token_json['access'], timeout=5, retries=0)

@@ -42,7 +42,7 @@ app.layout = html.Div(
 
 
 @app.callback(Output('tab-content', 'children'),
-              [Input('mad-dash-tabs', 'value')])
+              [Input('mad-dash-tabs', 'value')])  # type: ignore
 def render_content(tab: str) -> html.Div:
     """Create HTML for tab."""
     layouts = {
