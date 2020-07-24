@@ -89,7 +89,8 @@ def get_histograms(collection_name: str, database_name: str) -> List[api.I3Histo
     return [api.I3Histogram.from_dict(h) for h in response['histograms']]
 
 
-def get_histogram(histogram_name: str, collection_name: str, database_name: str) -> Optional[api.I3Histogram]:
+def get_histogram(histogram_name: str, collection_name: str, database_name: str
+                  ) -> Optional[api.I3Histogram]:
     """Return the histogram."""
     if not histogram_name or not collection_name or not database_name:
         return None
@@ -106,10 +107,9 @@ def get_histogram(histogram_name: str, collection_name: str, database_name: str)
             return None
 
     _log(url, database_name, collection_name, histogram_name)
-    histogram = response['histogram']
-    mdh = api.I3Histogram.from_dict(histogram)
-    mdh.collection = collection_name  # type: ignore
-    return mdh
+    i3histo = api.I3Histogram.from_dict(response['histogram'])
+    i3histo.collection = collection_name  # type: ignore
+    return i3histo
 
 
 def get_filelist(collection_name: str, database_name: str) -> List[str]:

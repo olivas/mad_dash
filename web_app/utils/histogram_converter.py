@@ -6,14 +6,15 @@ from typing import List, Optional, Union
 import plotly.graph_objs as go  # type: ignore
 
 # local imports
-import api
+from api import I3Histogram
 
 
-def _has_all_data(histograms: List[api.I3Histogram]) -> bool:
+def _has_all_data(histograms: List[I3Histogram]) -> bool:
     return any(histograms) and all(histograms)  # deal breakers: empty list, 1+ empty members
 
 
-def _get_layout(histograms: List[api.I3Histogram], title: Union[str, None], y_log: bool, alert_no_data: bool, no_title: bool) -> go.Layout:
+def _get_layout(histograms: List[I3Histogram], title: Optional[str], y_log: bool,
+                alert_no_data: bool, no_title: bool) -> go.Layout:
     """Get the layout for the histogram(s) plot."""
     histograms = list(filter(None, histograms))
 
@@ -54,7 +55,7 @@ def _get_layout(histograms: List[api.I3Histogram], title: Union[str, None], y_lo
                      plot_bgcolor=plot_bgcolor)
 
 
-def _get_data(histograms: List[api.I3Histogram]) -> Union[List[go.Bar], None]:
+def _get_data(histograms: List[I3Histogram]) -> Optional[List[go.Bar]]:
     """Get the data for the histogram(s) plot."""
     histograms = list(filter(None, histograms))
 
@@ -80,15 +81,15 @@ def _get_data(histograms: List[api.I3Histogram]) -> Union[List[go.Bar], None]:
     return data
 
 
-def mdh_to_plotly(histograms: Union[Optional[api.I3Histogram], List[api.I3Histogram]],
-                  title: Optional[str] = None, y_log: bool = False, alert_no_data: bool = False,
-                  no_title: bool = False) -> go.Figure:
+def i3histogram_to_plotly(histograms: Union[Optional[I3Histogram], List[I3Histogram]],
+                          title: Optional[str] = None, y_log: bool = False,
+                          alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with a n overlapped histograms.
 
     If the contents in `histograms` are not complete, ignore any other data.
 
     Arguments:
-        histograms -- a single api.I3Histogram or a list of n api.I3Histogram
+        histograms -- a single I3Histogram or a list of n I3Histogram
 
     Keyword arguments:
         title -- title of the plot (default: histograms[0]['name'])
@@ -101,12 +102,12 @@ def mdh_to_plotly(histograms: Union[Optional[api.I3Histogram], List[api.I3Histog
     # make `histograms` a list with no Nones
     if histograms is None:
         histograms = []
-    elif isinstance(histograms, api.I3Histogram):
+    elif isinstance(histograms, I3Histogram):
         histograms = [histograms]
 
-    if not (isinstance(histograms, list) and all(isinstance(h, api.I3Histogram) for h in histograms)):
+    if not (isinstance(histograms, list) and all(isinstance(h, I3Histogram) for h in histograms)):
         raise TypeError(
-            "`histograms` argument needs to be a single api.I3Histogram or a list of n api.I3Histogram.")
+            "`histograms` argument needs to be a single I3Histogram or a list of n I3Histogram.")
 
     layout = _get_layout(histograms, title, y_log, alert_no_data, no_title)
     data = _get_data(histograms)

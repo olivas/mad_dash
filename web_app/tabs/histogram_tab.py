@@ -402,7 +402,7 @@ def update_histogram_dropdown_options(database_name: str, collection_name: str) 
 def update_histogram_dropdown(histogram_name: str, database_name: str, collection_name: str, log: bool) -> go.Figure:
     """Plot chosen histogram."""
     histogram = db.get_histogram(histogram_name, collection_name, database_name)
-    return hc.mdh_to_plotly(histogram, y_log=log, no_title=True)
+    return hc.i3histogram_to_plotly(histogram, y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -411,7 +411,7 @@ def update_histogram_dropdown(histogram_name: str, database_name: str, collectio
 
 def _plot_default_histogram(database_name: str, collection_name: str, histo_name: str, log: bool) -> go.Figure:
     histogram = db.get_histogram(histo_name, collection_name, database_name)
-    return hc.mdh_to_plotly(histogram, title=histo_name, alert_no_data=True, y_log=log)
+    return hc.i3histogram_to_plotly(histogram, title=histo_name, alert_no_data=True, y_log=log)
 
 
 @app.callback(

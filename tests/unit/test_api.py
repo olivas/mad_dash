@@ -1,22 +1,19 @@
 """Test the api.py."""
 
-from typing import List, Union
+from typing import List
 
 import pytest  # type: ignore
 
 # local imports
-import api
-
-# types
-Num = Union[int, float]
+from api import I3Histogram, Num
 
 
 class TestI3Histogram:
-    """Unit test the api.I3Histogram class."""
+    """Unit test the I3Histogram class."""
 
     # pylint: disable=R0913
     @staticmethod
-    def assert_values(histogram: api.I3Histogram, name: str, xmax: Num, xmin: Num, overflow: int,
+    def assert_values(histogram: I3Histogram, name: str, xmax: Num, xmin: Num, overflow: int,
                       underflow: int, nan_count: int, bin_values: List[Num]) -> None:
         """Assert each value is in the histogram."""
         assert histogram.name == name
@@ -38,7 +35,7 @@ class TestI3Histogram:
         nan_count = 12
         bin_values = [0, 2, 4, 5, 9, 8, 5]  # type: List[Num]
 
-        histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        histogram = I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
         TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                       nan_count, bin_values)
 
@@ -57,7 +54,7 @@ class TestI3Histogram:
         nan_count = 12
         bin_values = [0, 2, 4.02, 5, 9.486, 8, 5]  # type: List[Num]
 
-        histogram = api.I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
+        histogram = I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
         TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                       nan_count, bin_values)
 
@@ -69,7 +66,7 @@ class TestI3Histogram:
     def test_20() -> None:
         """Fail-test name attribute."""
         with pytest.raises(NameError):
-            _ = api.I3Histogram('filelist', 0, 0, 0, 0, 0, [])
+            _ = I3Histogram('filelist', 0, 0, 0, 0, 0, [])
 
     @staticmethod
     def test_30() -> None:
@@ -95,7 +92,7 @@ class TestI3Histogram:
             'extra_value': extra_value
         }
 
-        histogram = api.I3Histogram.from_dict(dict_)
+        histogram = I3Histogram.from_dict(dict_)
         TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
                                       nan_count, bin_values)
 
@@ -112,7 +109,7 @@ class TestI3Histogram:
         addl = ['a']
         keeps = 2.0
 
-        histo = api.I3Histogram('test', 0, 0, 0, 0, 0, [])
+        histo = I3Histogram('test', 0, 0, 0, 0, 0, [])
         histo.extra = extra  # type: ignore
         histo.addl = addl  # type: ignore
         histo.keeps = keeps  # type: ignore

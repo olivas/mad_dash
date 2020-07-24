@@ -1,22 +1,17 @@
 """Routes handlers for the Mad-Dash REST API server interface."""
 
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, get_args
 
 import tornado.web
 from motor.motor_tornado import MotorClient, MotorCollection, MotorDatabase  # type: ignore
 
 # local imports
-import api
+from api import I3Histogram, MongoHistogram, Num, check_type
 from rest_tools.client import json_decode  # type: ignore
 from rest_tools.server import RestHandler, handler  # type: ignore
 
 from .config import AUTH_PREFIX, EXCLUDE_DBS
-
-# types
-MongoHistogram = Dict[str, Any]
-Num = Union[int, float]
-
 
 REMOVE_ID = {"_id": False}
 
@@ -85,7 +80,7 @@ class MadDashMotorClient():
         return collection
 
     async def get_mongo_histograms_in_collection(self, database_name: str, collection_name: str
-                                                 ) -> List[Dict[str, MongoHistogram]]:
+                                                 ) -> List[MongoHistogram]:
         """Return collection's histograms as dicts."""
         collection = self.get_collection(database_name, collection_name)
 
@@ -98,7 +93,7 @@ class MadDashMotorClient():
         # type check
         try:
             for h in mongo_histos:
-                _ = api.I3Histogram.from_dict(h)
+                _ = I3Histogram.from_dict(h)
         except (NameError, AttributeError, TypeError) as e:
             raise tornado.web.HTTPError(500, reason=str(e))
 
@@ -183,6 +178,10 @@ class CollectionsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
 # -----------------------------------------------------------------------------
 
+def go(_: List[str]) -> int:
+    """Do it."""
+    return 5
+
 
 class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of histograms' names."""
@@ -193,9 +192,13 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        mongo_histo = await self.md_mc.get_mongo_histograms_in_collection(database_name,
-                                                                          collection_name)
-        histogram_names = [c['name'] for c in mongo_histo]
+        mongo_histos = await self.md_mc.get_mongo_histograms_in_collection(database_name,
+                                                                           collection_name)
+        histogram_names = [c['name'] for c in mongo_histos]
+
+        print(f"\n\n\n\n\n\n\n {mongo_histos} \n\n\n\n\n\n\n")
+
+        go(histogram_names)
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -228,7 +231,7 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying/adding histogram object."""
 
     async def get_i3histogram(self, database_name: str, collection_name: str, histogram_name: str,
-                              remove_id: bool = True) -> Optional[api.I3Histogram]:
+                              remove_id: bool = True) -> Optional[I3Histogram]:
         """Return I3Histogram object.
 
         Also type-checks the required I3Histogram attributes.
@@ -245,7 +248,7 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
             return None
 
         try:
-            histogram = api.I3Histogram.from_dict(mongo_histogram)
+            histogram = I3Histogram.from_dict(mongo_histogram)
         except (NameError, AttributeError, TypeError) as e:
             raise tornado.web.HTTPError(500, reason=str(e))
 
@@ -268,32 +271,33 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
                     'history': histogram.history})
 
     async def update_histogram(self, database_name: str, collection_name: str,
-                               histogram: api.I3Histogram) -> None:
+                               histogram: I3Histogram) -> None:
         """Update the histogram's values. Assumes the histogram already exits.
 
         Write back to output buffer.
         """
-        db_histo = await self.get_i3histogram(database_name, collection_name,
-                                              histogram.name, remove_id=False)
-        if not db_histo:  # here to appease mypy
+        i3histo = await self.get_i3histogram(database_name, collection_name, histogram.name,
+                                             remove_id=False)
+        if not i3histo:  # here to appease mypy
             raise Exception("There is no histogram to update. This should've been caught upstream.")
 
-        db_histo.update(histogram)
+        i3histo.update(histogram)
 
         # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        mongo_histo = db_histo.to_dict()
-        result = await collection.replace_one({'_id': mongo_histo['_id']}, mongo_histo)
+        mongo_histo = i3histo.to_dict()
+        _id = mongo_histo['_id']  # type: ignore  # https://github.com/python/mypy/issues/4617
+        result = await collection.replace_one({'_id': _id}, mongo_histo)
 
         # write
         self.write({'database': database_name,
                     'collection': collection_name,
-                    'histogram': db_histo.to_dict(exclude=EXCLUDE_KEYS),
-                    'history': db_histo.history,
+                    'histogram': i3histo.to_dict(exclude=EXCLUDE_KEYS),
+                    'history': i3histo.history,
                     'updated': result.acknowledged})
 
     async def insert_histogram(self, database_name: str, collection_name: str,
-                               histogram: api.I3Histogram) -> None:
+                               histogram: I3Histogram) -> None:
         """Insert the novel histogram.
 
         Write back to output buffer.
@@ -325,7 +329,7 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         # check type and structure
         try:
-            histogram = api.I3Histogram.from_dict(mongo_histogram)
+            histogram = I3Histogram.from_dict(mongo_histogram)
         except (NameError, AttributeError, TypeError) as e:
             raise tornado.web.HTTPError(400, reason=str(e))
 
@@ -373,8 +377,8 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
         if 'files' in dict_:
             files = dict_['files']
 
-        api.check_type(history, list, (int, float))
-        api.check_type(files, list, str)
+        check_type(history, list, get_args(Num))
+        check_type(files, list, str)
 
         return dict_['_id'], files, history
 

@@ -2,10 +2,23 @@
 
 import copy
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, TypedDict, Union, cast, get_args
 
 # types
 Num = Union[int, float]
+
+
+class MongoHistogram(TypedDict):
+    """Dict representation of a histogram for db, serialization, and typing."""
+
+    name: str
+    xmax: Num
+    xmin: Num
+    overflow: int
+    underflow: int
+    nan_count: int
+    bin_values: List[Num]
+    history: List[Num]
 
 
 def check_type(value: Any, type_: Union[type, Tuple[type, ...]],
@@ -59,7 +72,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmax.setter
     def xmax(self, value: Num) -> None:
-        check_type(value, (int, float))
+        check_type(value, get_args(Num))
         self.__xmax = value
 
     @property
@@ -69,7 +82,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmin.setter
     def xmin(self, value: Num) -> None:
-        check_type(value, (int, float))
+        check_type(value, get_args(Num))
         self.__xmin = value
 
     @property
@@ -109,7 +122,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @bin_values.setter
     def bin_values(self, value: List[Num]) -> None:
-        check_type(value, list, (int, float))
+        check_type(value, list, get_args(Num))
         self.__bin_values = value
 
     @property
@@ -119,30 +132,34 @@ class I3Histogram:  # pylint: disable=R0902
 
     @history.setter
     def history(self, value: List[Num]) -> None:
-        check_type(value, list, (int, float))
+        check_type(value, list, get_args(Num))
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: Dict[str, Any]) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
+    def from_dict(dict_: MongoHistogram) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
         """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
 
         Arguments:
-            dict_ -- the dictionary to be morphed
+            dict_ {MongoHistogram} -- the dictionary to be morphed
 
-        Raises a {NameError} if the name field is illegal
-        Raises a {AttributeError} if there's any extra keys (fields)
-        Raises a {TypeError} if there's any mistyped items (attributes)
+        Returns:
+            [type] -- [description]
+
+        Raises:
+            NameError -- if the name field is illegal
+            AttributeError -- if there's any extra keys (fields)
+            TypeError -- if there's any mistyped items (attributes)
         """
         try:
-            mdh = I3Histogram(dict_['name'],
-                              dict_['xmax'],
-                              dict_['xmin'],
-                              dict_['overflow'],
-                              dict_['underflow'],
-                              dict_['nan_count'],
-                              dict_['bin_values'])
+            i3histogram = I3Histogram(dict_['name'],
+                                      dict_['xmax'],
+                                      dict_['xmin'],
+                                      dict_['overflow'],
+                                      dict_['underflow'],
+                                      dict_['nan_count'],
+                                      dict_['bin_values'])
         except KeyError as e:
             raise AttributeError(f"histogram has missing field {str(e)}")
 
@@ -151,11 +168,11 @@ class I3Histogram:  # pylint: disable=R0902
                           'underflow', 'nan_count', 'bin_values']
         for attr_name, attr_value in dict_.items():
             if attr_name not in mandatory_keys:
-                mdh.__setattr__(attr_name, attr_value)
+                i3histogram.__setattr__(attr_name, attr_value)
 
-        return mdh
+        return i3histogram
 
-    def to_dict(self, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
+    def to_dict(self, exclude: Optional[List[str]] = None) -> MongoHistogram:
         """Return attributes as dictionary."""
         dict_ = copy.deepcopy(vars(self))
 
@@ -171,7 +188,7 @@ class I3Histogram:  # pylint: disable=R0902
                 if k in dict_:
                     del dict_[k]
 
-        return dict_
+        return cast(MongoHistogram, dict_)
 
     def add_to_history(self, pseudo_first: bool = False) -> None:
         """Append epoch timestamp to `history`.

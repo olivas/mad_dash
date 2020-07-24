@@ -137,11 +137,11 @@ def update_histogram(histogram_name: str, histogram_options: List[str], log: boo
                      database_name: str, collection_names: List[str]) -> go.Figure:
     """Plot each collection's histograms on the same plot."""
     if not collection_names or not histogram_options:
-        return hc.mdh_to_plotly(None, y_log=log, no_title=True)
+        return hc.i3histogram_to_plotly(None, y_log=log, no_title=True)
 
     all_histograms = [db.get_histogram(histogram_name, c, database_name) for c in collection_names]
 
-    return hc.mdh_to_plotly(list(filter(None, all_histograms)), y_log=log, no_title=True)
+    return hc.i3histogram_to_plotly(list(filter(None, all_histograms)), y_log=log, no_title=True)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -152,6 +152,7 @@ def update_histogram(histogram_name: str, histogram_options: List[str], log: boo
               [Input('database-name-dropdown-tab2', 'value'),
                Input('collections-dropdown-tab2', 'value')])  # type: ignore
 def compare_collections(database_name: str, collection_names: List[str]) -> List[html.Tr]:
+    """TODO."""
     if not collection_names:
         return []
 
