@@ -8,6 +8,22 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 Num = Union[int, float]
 
 
+def check_type(value: Any, type_: Union[type, Tuple[type, ...]],
+               member_type: Optional[Union[type, Tuple[type, ...]]] = None) -> Any:
+    """Raise `TypeError` if `value` not of type, `type_`.
+
+    Type check collection members by passing an iterable `value` and
+    `member_type`.
+    """
+    if not isinstance(value, type_):
+        raise TypeError(f"Attribute should be {type_} not {type(value)}")
+    if member_type:
+        for member in value:
+            if not isinstance(member, member_type):
+                raise TypeError(f"Attribute member type should be {member_type} not {type(member)}")
+    return value
+
+
 class I3Histogram:  # pylint: disable=R0902
     """A representation of a histogram."""
 
@@ -24,17 +40,6 @@ class I3Histogram:  # pylint: disable=R0902
 
         self.history = []
 
-    @staticmethod
-    def _check_type(value: Any, type_: Union[type, Tuple[type, ...]],
-                    member_type: Optional[Union[type, Tuple[type, ...]]] = None) -> None:
-        """Raise TypeError if `value` not `type_`."""
-        if not isinstance(value, type_):
-            raise TypeError(f"Attribute should be {type_} not {type(value)}")
-        if member_type:
-            for member in value:
-                if not isinstance(member, member_type):
-                    raise TypeError(f"Attribute member type should be {member_type} not {type(member)}")
-
     @property
     def name(self) -> str:
         """Histogram name."""
@@ -44,7 +49,7 @@ class I3Histogram:  # pylint: disable=R0902
     def name(self, value: str) -> None:
         if value == 'filelist':
             raise NameError("histogram cannot be named 'filelist'")
-        I3Histogram._check_type(value, str)
+        check_type(value, str)
         self.__name = value
 
     @property
@@ -54,7 +59,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmax.setter
     def xmax(self, value: Num) -> None:
-        I3Histogram._check_type(value, (int, float))
+        check_type(value, (int, float))
         self.__xmax = value
 
     @property
@@ -64,7 +69,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmin.setter
     def xmin(self, value: Num) -> None:
-        I3Histogram._check_type(value, (int, float))
+        check_type(value, (int, float))
         self.__xmin = value
 
     @property
@@ -74,7 +79,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @overflow.setter
     def overflow(self, value: int) -> None:
-        I3Histogram._check_type(value, int)
+        check_type(value, int)
         self.__overflow = value
 
     @property
@@ -84,7 +89,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @underflow.setter
     def underflow(self, value: int) -> None:
-        I3Histogram._check_type(value, int)
+        check_type(value, int)
         self.__underflow = value
 
     @property
@@ -94,7 +99,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @nan_count.setter
     def nan_count(self, value: int) -> None:
-        I3Histogram._check_type(value, int)
+        check_type(value, int)
         self.__nan_count = value
 
     @property
@@ -104,7 +109,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @bin_values.setter
     def bin_values(self, value: List[Num]) -> None:
-        I3Histogram._check_type(value, list, (int, float))
+        check_type(value, list, (int, float))
         self.__bin_values = value
 
     @property
@@ -114,7 +119,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @history.setter
     def history(self, value: List[Num]) -> None:
-        I3Histogram._check_type(value, list, (int, float))
+        check_type(value, list, (int, float))
         self.__history = value
 
     @staticmethod

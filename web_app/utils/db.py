@@ -123,4 +123,6 @@ def get_filelist(collection_name: str, database_name: str) -> List[str]:
     response = md_rc.request_seq('GET', url, coll_request_body)
 
     _log(url, database_name, collection_name)
-    return typing.cast(List[str], response['files'])
+    files = response['files']
+    api.check_type(files, list, str)  # actually type check
+    return typing.cast(List[str], files)  # type check for mypy

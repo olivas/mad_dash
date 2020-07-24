@@ -93,7 +93,16 @@ class MadDashMotorClient():
         async for o in collection.find(projection=REMOVE_ID):
             objs.append(o)
 
-        return [d for d in objs if d['name'] != 'filelist']
+        mongo_histos = [d for d in objs if d['name'] != 'filelist']
+
+        # type check
+        try:
+            for h in mongo_histos:
+                _ = api.I3Histogram.from_dict(h)
+        except (NameError, AttributeError, TypeError) as e:
+            raise tornado.web.HTTPError(500, reason=str(e))
+
+        return mongo_histos
 
 
 # -----------------------------------------------------------------------------
@@ -218,9 +227,12 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):  # pylint: disable=W0223
 class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying/adding histogram object."""
 
-    async def get_histogram(self, database_name: str, collection_name: str, histogram_name: str,
-                            remove_id: bool = True) -> Optional[api.I3Histogram]:
-        """Return histogram object."""
+    async def get_i3histogram(self, database_name: str, collection_name: str, histogram_name: str,
+                              remove_id: bool = True) -> Optional[api.I3Histogram]:
+        """Return I3Histogram object.
+
+        Also type-checks the required I3Histogram attributes.
+        """
         collection = self.md_mc.get_collection(database_name, collection_name)
 
         if remove_id:
@@ -232,7 +244,11 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         if not mongo_histogram:
             return None
 
-        histogram = api.I3Histogram.from_dict(mongo_histogram)
+        try:
+            histogram = api.I3Histogram.from_dict(mongo_histogram)
+        except (NameError, AttributeError, TypeError) as e:
+            raise tornado.web.HTTPError(500, reason=str(e))
+
         return histogram
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
@@ -242,7 +258,7 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         collection_name = self.get_required_argument('collection')
         histogram_name = self.get_required_argument('name')
 
-        histogram = await self.get_histogram(database_name, collection_name, histogram_name)
+        histogram = await self.get_i3histogram(database_name, collection_name, histogram_name)
         if not histogram:
             raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
@@ -257,8 +273,8 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         Write back to output buffer.
         """
-        db_histo = await self.get_histogram(database_name, collection_name,
-                                            histogram.name, remove_id=False)
+        db_histo = await self.get_i3histogram(database_name, collection_name,
+                                              histogram.name, remove_id=False)
         if not db_histo:  # here to appease mypy
             raise Exception("There is no histogram to update. This should've been caught upstream.")
 
@@ -310,12 +326,12 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         # check type and structure
         try:
             histogram = api.I3Histogram.from_dict(mongo_histogram)
-        except (AttributeError, TypeError, NameError) as e:
+        except (NameError, AttributeError, TypeError) as e:
             raise tornado.web.HTTPError(400, reason=str(e))
 
         # is the histogram already in the collection?
         async def histogram_exists() -> bool:
-            return bool(await self.get_histogram(database_name, collection_name, histogram.name))
+            return bool(await self.get_i3histogram(database_name, collection_name, histogram.name))
 
         # update/insert
         if await histogram_exists():
@@ -334,9 +350,11 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
     async def get_filelist_attributes(self, database_name: str, collection_name: str,
                                       remove_id: bool = True) -> Tuple[Any, List[str], List[Num]]:
-        """Return filelist-dict's id, filenames, and history in collection.
+        """Return filelist-dict's `id, filenames, history` in collection.
 
-        Raise {TypeError} if filelist-dict not in collection.
+        Return `None` for id, if the `collection_name` is not in the DB.
+        Return [] for filenames and/or history, if they're not in the
+        collection.
         """
         collection = self.md_mc.get_collection(database_name, collection_name)
 
@@ -344,11 +362,21 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
             dict_ = await collection.find_one({'name': 'filelist'}, projection=REMOVE_ID)
         dict_ = await collection.find_one({'name': 'filelist'})
 
+        if not dict_:
+            return None, [], []
+
         history = []  # type: List[Union[int,float]]
         if 'history' in dict_:  # old collections may not have a history defined
             history = dict_['history']
 
-        return dict_['_id'], dict_['files'], history
+        files = []
+        if 'files' in dict_:
+            files = dict_['files']
+
+        api.check_type(history, list, (int, float))
+        api.check_type(files, list, str)
+
+        return dict_['_id'], files, history
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production', 'web'])  # type: ignore
     async def get(self) -> None:
@@ -356,11 +384,7 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        try:
-            _, filenames, history = await self.get_filelist_attributes(database_name, collection_name)
-        except TypeError:
-            filenames = []
-            history = []
+        _, filenames, history = await self.get_filelist_attributes(database_name, collection_name)
 
         self.write({'database': database_name,
                     'collection': collection_name,
@@ -432,11 +456,8 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         # is the filelist already in the collection?
         async def filelist_exists() -> bool:
-            try:
-                await self.get_filelist_attributes(database_name, collection_name)
-                return True
-            except TypeError:
-                return False
+            id_, _, _ = await self.get_filelist_attributes(database_name, collection_name)
+            return bool(id_)
 
         # update/insert
         if await filelist_exists():
