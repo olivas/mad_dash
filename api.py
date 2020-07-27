@@ -21,7 +21,8 @@ class MongoHistogram(TypedDict):
     history: List[Num]
 
 
-def check_type(value: Any, type_: Union[type, Tuple[type, ...]],
+def check_type(value: Any,
+               type_: Union[type, Tuple[type, ...]],
                member_type: Optional[Union[type, Tuple[type, ...]]] = None) -> Any:
     """Raise `TypeError` if `value` not of type, `type_`.
 
@@ -136,7 +137,8 @@ class I3Histogram:  # pylint: disable=R0902
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: MongoHistogram) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
+    # https://github.com/python/typing/issues/58
+    def from_dict(dict_: MongoHistogram) -> 'I3Histogram':
         """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
@@ -159,13 +161,14 @@ class I3Histogram:  # pylint: disable=R0902
                                       dict_['overflow'],
                                       dict_['underflow'],
                                       dict_['nan_count'],
-                                      dict_['bin_values'])
+                                      dict_['bin_values'])  # yapf: disable
         except KeyError as e:
             raise AttributeError(f"histogram has missing field {str(e)}")
 
         # add extra items
-        mandatory_keys = ['name', 'xmax', 'xmin', 'overflow',
-                          'underflow', 'nan_count', 'bin_values']
+        mandatory_keys = [
+            'name', 'xmax', 'xmin', 'overflow', 'underflow', 'nan_count', 'bin_values'
+        ]
         for attr_name, attr_value in dict_.items():
             if attr_name not in mandatory_keys:
                 i3histogram.__setattr__(attr_name, attr_value)

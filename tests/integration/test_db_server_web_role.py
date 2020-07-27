@@ -32,7 +32,8 @@ class TestDBServerWebRole:
             print(collections)
             for c in collections['collections']:
                 coll_request_body = {'database': d, 'collection': c}
-                histograms = db_rc.request_seq('GET', '/collections/histograms/names', coll_request_body)
+                histograms = db_rc.request_seq('GET', '/collections/histograms/names',
+                                               coll_request_body)
                 print(histograms)
                 for h in histograms['histograms']:
                     histo_request_body = {'database': d, 'collection': c, 'name': h}
@@ -46,9 +47,13 @@ class TestDBServerWebRole:
     @staticmethod
     def test_post_histo(db_rc: RestClient) -> None:
         """Failure-test role authorization."""
-        post_body = {'database': 'test_histograms',
-                     'collection': 'TEST',
-                     'histogram': {'Anything': True}}
+        post_body = {
+            'database': 'test_histograms',
+            'collection': 'TEST',
+            'histogram': {
+                'Anything': True
+            }
+        }
         with pytest.raises(requests.exceptions.HTTPError) as e:
             db_rc.request_seq('POST', '/histogram', post_body)
             assert e.response.status_code == 403  # Forbidden Error
@@ -58,9 +63,11 @@ class TestDBServerWebRole:
     @staticmethod
     def test_post_files(db_rc: RestClient) -> None:
         """Failure-test role authorization."""
-        post_body = {'database': 'test_histograms',
-                     'collection': 'collection_name',
-                     'files': ['test.txt']}
+        post_body = {
+            'database': 'test_histograms',
+            'collection': 'collection_name',
+            'files': ['test.txt']
+        }
         with pytest.raises(requests.exceptions.HTTPError) as e:
             db_rc.request_seq('POST', '/files/names', post_body)
             assert e.response.status_code == 403  # Forbidden Error

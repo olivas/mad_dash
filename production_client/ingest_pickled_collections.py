@@ -21,13 +21,18 @@ Histogram = Dict[str, Any]
 Collection = Dict[str, Union[FilelistDict, Histogram]]
 
 
-async def post_filelist(rc: RestClient, filelist: FilelistList, collection_name: str,
-                        database_name: str, update: bool = False) -> None:
+async def post_filelist(rc: RestClient,
+                        filelist: FilelistList,
+                        collection_name: str,
+                        database_name: str,
+                        update: bool = False) -> None:
     """POST filelist to collection in simprod mongo DBMS."""
-    post_body = {'database': database_name,
-                 'collection': collection_name,
-                 'files': filelist,
-                 'update': update}
+    post_body = {
+        'database': database_name,
+        'collection': collection_name,
+        'files': filelist,
+        'update': update
+    }
     post_resp = await rc.request('POST', '/files/names', post_body)
     logging.info(f"POSTed filelist to {collection_name} (db: {database_name}).")
     logging.debug(f"POST response: {post_resp}.")
@@ -37,19 +42,25 @@ def get_filelist(collection: Collection, collection_name: str) -> FilelistList:
     """Get the filelist in the collection."""
     filelist = collection['filelist']['files']
     if filelist:
-        logging.info(f"From collection ('{collection_name}'), grabbed filelist ({len(filelist)} files).")
+        logging.info(
+            f"From collection ('{collection_name}'), grabbed filelist ({len(filelist)} files).")
     else:
         logging.info(f"From collection ('{collection_name}'), no files in filelist.")
     return filelist
 
 
-async def post_histogram(rc: RestClient, histo: Histogram, collection_name: str, database_name: str,
+async def post_histogram(rc: RestClient,
+                         histo: Histogram,
+                         collection_name: str,
+                         database_name: str,
                          update: bool = False) -> None:
     """POST histogram to collection in simprod mongo DBMS."""
-    post_body = {'database': database_name,
-                 'collection': collection_name,
-                 'histogram': histo,
-                 'update': update}
+    post_body = {
+        'database': database_name,
+        'collection': collection_name,
+        'histogram': histo,
+        'update': update
+    }
     post_resp = await rc.request('POST', '/histogram', post_body)
     logging.info(f"POSTed histogram ({histo['name']}) to {collection_name} (db: {database_name}).")
     logging.debug(f"POST response: {post_resp}.")
@@ -88,7 +99,8 @@ def get_all_pickles(paths: List[str], recurse: bool = False) -> List[str]:
     return pickles
 
 
-def get_each_collection(paths: List[str], recurse: bool = False) -> Iterator[Tuple[Collection, str]]:
+def get_each_collection(paths: List[str],
+                        recurse: bool = False) -> Iterator[Tuple[Collection, str]]:
     """Generate histograms and file-lists from pickles at given paths."""
     pickles = get_all_pickles(paths, recurse=recurse)
 
@@ -115,21 +127,33 @@ def get_rest_client(dbms_url: str, token_url: str) -> RestClient:
 async def main() -> None:
     """Do main."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('paths', metavar='PATHS', nargs='+',
+    parser.add_argument('paths',
+                        metavar='PATHS',
+                        nargs='+',
                         help='path(s) to grab pickles;'
                         ' each filename will be used as a mongodb collection name.')
-    parser.add_argument('-r', dest='recurse_paths', default=False, action='store_true',
+    parser.add_argument('-r',
+                        dest='recurse_paths',
+                        default=False,
+                        action='store_true',
                         help='recursively search for pickle files.')
-    parser.add_argument('--database', default='simprod_histos',
+    parser.add_argument('--database',
+                        default='simprod_histos',
                         help='name of database to ingest histograms.')
-    parser.add_argument('-u', '--update', default=False, action='store_true',
+    parser.add_argument('-u',
+                        '--update',
+                        default=False,
+                        action='store_true',
                         help='update histogram, if it already exists in the database.')
-    parser.add_argument('--dbms-url', dest='dbms_url', default='http://localhost:8080',
+    parser.add_argument('--dbms-url',
+                        dest='dbms_url',
+                        default='http://localhost:8080',
                         help='url to the dbms server.')
-    parser.add_argument('--token-url', dest='token_url', default='http://localhost:8888',
+    parser.add_argument('--token-url',
+                        dest='token_url',
+                        default='http://localhost:8888',
                         help='url to the token service.')
-    parser.add_argument('-l', '--log', default='DEBUG',
-                        help='the output logging level')
+    parser.add_argument('-l', '--log', default='DEBUG', help='the output logging level')
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log.upper()))

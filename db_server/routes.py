@@ -17,7 +17,6 @@ REMOVE_ID = {"_id": False}
 
 EXCLUDE_KEYS = ['_id', 'history']
 
-
 # -----------------------------------------------------------------------------
 
 
@@ -30,7 +29,9 @@ class MadDashMotorClient():
 
     async def get_database_names(self) -> List[str]:
         """Return all databases' names."""
-        database_names = [n for n in await self.motor_client.list_database_names() if n not in EXCLUDE_DBS]
+        database_names = [
+            n for n in await self.motor_client.list_database_names() if n not in EXCLUDE_DBS
+        ]
         return database_names
 
     def get_database(self, database_name: str) -> MotorDatabase:
@@ -43,7 +44,9 @@ class MadDashMotorClient():
     async def get_collection_names(self, database_name: str) -> List[str]:
         """Return collection names in database."""
         database = self.get_database(database_name)
-        collection_names = [n for n in await database.list_collection_names() if n != 'system.indexes']
+        collection_names = [
+            n for n in await database.list_collection_names() if n != 'system.indexes'
+        ]
 
         return collection_names
 
@@ -68,7 +71,8 @@ class MadDashMotorClient():
             for collection_name in await self.get_collection_names(database_name):
                 await self.ensure_collection_indexes(database_name, collection_name)
 
-    async def get_create_collection(self, database_name: str, collection_name: str) -> MotorCollection:
+    async def get_create_collection(self, database_name: str,
+                                    collection_name: str) -> MotorCollection:
         """Return collection instance, if it doesn't exist, create it."""
         database = self.get_database(database_name)
         try:
@@ -79,8 +83,8 @@ class MadDashMotorClient():
 
         return collection
 
-    async def get_mongo_histograms_in_collection(self, database_name: str, collection_name: str
-                                                 ) -> List[MongoHistogram]:
+    async def get_mongo_histograms_in_collection(self, database_name: str,
+                                                 collection_name: str) -> List[MongoHistogram]:
         """Return collection's histograms as dicts."""
         collection = self.get_collection(database_name, collection_name)
 
@@ -172,11 +176,11 @@ class CollectionsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         collection_names = await self.md_mc.get_collection_names(database_name)
 
-        self.write({'database': database_name,
-                    'collections': collection_names})
+        self.write({'database': database_name, 'collections': collection_names})
 
 
 # -----------------------------------------------------------------------------
+
 
 def go(_: List[str]) -> int:
     """Do it."""
@@ -192,17 +196,20 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        mongo_histos = await self.md_mc.get_mongo_histograms_in_collection(database_name,
-                                                                           collection_name)
+        mongo_histos = await self.md_mc.get_mongo_histograms_in_collection(
+            database_name, collection_name)
         histogram_names = [c['name'] for c in mongo_histos]
 
         print(f"\n\n\n\n\n\n\n {mongo_histos} \n\n\n\n\n\n\n")
 
         go(histogram_names)
 
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histograms': histogram_names})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'histograms': histogram_names
+        })
+
 
 # -----------------------------------------------------------------------------
 
@@ -216,12 +223,14 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):  # pylint: disable=W0223
         database_name = self.get_required_argument('database')
         collection_name = self.get_required_argument('collection')
 
-        mongo_histo = await self.md_mc.get_mongo_histograms_in_collection(database_name,
-                                                                          collection_name)
+        mongo_histo = await self.md_mc.get_mongo_histograms_in_collection(
+            database_name, collection_name)
 
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histograms': mongo_histo})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'histograms': mongo_histo
+        })
 
 
 # -----------------------------------------------------------------------------
@@ -230,7 +239,10 @@ class CollectionsHistogramsHandler(BaseMadDashHandler):  # pylint: disable=W0223
 class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying/adding histogram object."""
 
-    async def get_i3histogram(self, database_name: str, collection_name: str, histogram_name: str,
+    async def get_i3histogram(self,
+                              database_name: str,
+                              collection_name: str,
+                              histogram_name: str,
                               remove_id: bool = True) -> Optional[I3Histogram]:
         """Return I3Histogram object.
 
@@ -265,10 +277,12 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         if not histogram:
             raise tornado.web.HTTPError(400, reason=f"histogram not found ({histogram_name})")
 
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
-                    'history': histogram.history})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+            'history': histogram.history
+        })
 
     async def update_histogram(self, database_name: str, collection_name: str,
                                histogram: I3Histogram) -> None:
@@ -276,7 +290,9 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         Write back to output buffer.
         """
-        i3histo = await self.get_i3histogram(database_name, collection_name, histogram.name,
+        i3histo = await self.get_i3histogram(database_name,
+                                             collection_name,
+                                             histogram.name,
                                              remove_id=False)
         if not i3histo:  # here to appease mypy
             raise Exception("There is no histogram to update. This should've been caught upstream.")
@@ -290,11 +306,13 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         result = await collection.replace_one({'_id': _id}, mongo_histo)
 
         # write
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histogram': i3histo.to_dict(exclude=EXCLUDE_KEYS),
-                    'history': i3histo.history,
-                    'updated': result.acknowledged})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'histogram': i3histo.to_dict(exclude=EXCLUDE_KEYS),
+            'history': i3histo.history,
+            'updated': result.acknowledged
+        })
 
     async def insert_histogram(self, database_name: str, collection_name: str,
                                histogram: I3Histogram) -> None:
@@ -309,11 +327,13 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         await collection.insert_one(histogram.to_dict())
 
         # write
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
-                    'history': histogram.history,
-                    'updated': False})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'histogram': histogram.to_dict(exclude=EXCLUDE_KEYS),
+            'history': histogram.history,
+            'updated': False
+        })
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])  # type: ignore
     async def post(self) -> None:
@@ -340,7 +360,8 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
         # update/insert
         if await histogram_exists():
             if not update:
-                raise tornado.web.HTTPError(409, reason=f"histogram already in collection ({histogram.name})")
+                raise tornado.web.HTTPError(
+                    409, reason=f"histogram already in collection ({histogram.name})")
             await self.update_histogram(database_name, collection_name, histogram)
         else:
             await self.insert_histogram(database_name, collection_name, histogram)
@@ -352,7 +373,9 @@ class HistogramHandler(BaseMadDashHandler):  # pylint: disable=W0223
 class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of filenames for given collection."""
 
-    async def get_filelist_attributes(self, database_name: str, collection_name: str,
+    async def get_filelist_attributes(self,
+                                      database_name: str,
+                                      collection_name: str,
                                       remove_id: bool = True) -> Tuple[Any, List[str], List[Num]]:
         """Return filelist-dict's `id, filenames, history` in collection.
 
@@ -390,10 +413,12 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         _, filenames, history = await self.get_filelist_attributes(database_name, collection_name)
 
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'files': filenames,
-                    'history': history})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'files': filenames,
+            'history': history
+        })
 
     async def update_filelist(self, database_name: str, collection_name: str,
                               new_filenames: List[str]) -> None:
@@ -413,20 +438,20 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         # put in DB
         collection = self.md_mc.get_collection(database_name, collection_name)
-        dict_ = {'name': 'filelist',
-                 'files': filenames,
-                 'history': history}
+        dict_ = {'name': 'filelist', 'files': filenames, 'history': history}
         result = await collection.replace_one({'_id': _id}, dict_)
 
         # write
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'files': filenames,
-                    'history': history,
-                    'updated': result.acknowledged})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'files': filenames,
+            'history': history,
+            'updated': result.acknowledged
+        })
 
-    async def insert_filelist(self, database_name: str, collection_name: str, filenames: List[str]
-                              ) -> None:
+    async def insert_filelist(self, database_name: str, collection_name: str,
+                              filenames: List[str]) -> None:
         """Insert novel filelist object.
 
         Write back to output buffer.
@@ -435,16 +460,16 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
         history = [time.time()]
 
         # put in DB
-        await collection.insert_one({'name': 'filelist',
-                                     'files': filenames,
-                                     'history': history})
+        await collection.insert_one({'name': 'filelist', 'files': filenames, 'history': history})
 
         # write
-        self.write({'database': database_name,
-                    'collection': collection_name,
-                    'files': filenames,
-                    'history': history,
-                    'updated': False})
+        self.write({
+            'database': database_name,
+            'collection': collection_name,
+            'files': filenames,
+            'history': history,
+            'updated': False
+        })
 
     @handler.scope_role_auth(prefix=AUTH_PREFIX, roles=['production'])  # type: ignore
     async def post(self) -> None:
@@ -456,7 +481,8 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 
         # type check
         if not isinstance(filenamelist, list):
-            raise tornado.web.HTTPError(400, reason=f"'files' field is not a list ({type(filenamelist)})")
+            raise tornado.web.HTTPError(
+                400, reason=f"'files' field is not a list ({type(filenamelist)})")
 
         # is the filelist already in the collection?
         async def filelist_exists() -> bool:
@@ -466,7 +492,8 @@ class FileNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
         # update/insert
         if await filelist_exists():
             if not update:
-                raise tornado.web.HTTPError(409, reason=f"files already in collection, {collection_name}")
+                raise tornado.web.HTTPError(
+                    409, reason=f"files already in collection, {collection_name}")
             await self.update_filelist(database_name, collection_name, filenamelist)
         else:
             await self.insert_filelist(database_name, collection_name, filenamelist)
