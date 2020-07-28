@@ -36,8 +36,8 @@ class TestI3Histogram:
         bin_values = [0, 2, 4, 5, 9, 8, 5]  # type: List[Num]
 
         histogram = I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow, nan_count,
-                                      bin_values)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         history = [200, 500]  # type: List[Num]
         histogram.history = history
@@ -55,8 +55,8 @@ class TestI3Histogram:
         bin_values = [0, 2, 4.02, 5, 9.486, 8, 5]  # type: List[Num]
 
         histogram = I3Histogram(name, xmax, xmin, overflow, underflow, nan_count, bin_values)
-        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow, nan_count,
-                                      bin_values)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         history = [10.25, 300]
         histogram.history = history
@@ -92,9 +92,9 @@ class TestI3Histogram:
             'extra_value': extra_value
         }
 
-        histogram = I3Histogram.from_dict(dict_)  # type: ignore
-        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow, nan_count,
-                                      bin_values)
+        histogram = I3Histogram.from_dict(dict_)
+        TestI3Histogram.assert_values(histogram, name, xmax, xmin, overflow, underflow,
+                                      nan_count, bin_values)
 
         out_dict = histogram.to_dict()
         assert dict_ == out_dict

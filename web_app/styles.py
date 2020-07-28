@@ -1,6 +1,8 @@
 """Common HTML styles."""
 
-HIDDEN = {'visibility': 'hidden'}
+HIDDEN = {
+    'visibility': 'hidden'
+}
 
 CENTERED_100 = {
     'width': '100%',
@@ -9,9 +11,14 @@ CENTERED_100 = {
     'justify-content': 'center'
 }
 
-WIDTH_45 = {'width': '45%'}
+WIDTH_45 = {
+    'width': '45%'
+}
 
-LEFT_45 = {'width': '45%', 'float': 'left'}
+LEFT_45 = {
+    'width': '45%',
+    'float': 'left'
+}
 
 WIDTH_30 = {
     'width': '30%',
@@ -34,7 +41,10 @@ CONTENT_STYLE = {
 
 # Hr
 
-SHORT_HR = {'margin-left': '15%', 'margin-right': '15%'}
+SHORT_HR = {
+    'margin-left': '15%',
+    'margin-right': '15%'
+}
 
 # Stats
 
@@ -46,14 +56,26 @@ STAT_NUMBER = {
     'padding-right': '4%'
 }
 
-STAT_LABEL = {'fontSize': 20, 'display': 'inline-block'}
+STAT_LABEL = {
+    'fontSize': 20,
+    'display': 'inline-block'
+}
 
 # Styles for Tabs
 
 _TAB_HEIGHT = '5vh'
 
-TAB_SELECTED_STYLE = {'padding': '0', 'line-height': _TAB_HEIGHT}
+TAB_SELECTED_STYLE = {
+    'padding': '0',
+    'line-height': _TAB_HEIGHT
+}
 
-TAB_STYLE = {'padding': '0', 'line-height': _TAB_HEIGHT}
+TAB_STYLE = {
+    'padding': '0',
+    'line-height': _TAB_HEIGHT
+}
 
-TABS_STYLE = {'height': _TAB_HEIGHT, 'font-size': '120%'}
+TABS_STYLE = {
+    'height': _TAB_HEIGHT,
+    'font-size': '120%'
+}

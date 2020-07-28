@@ -74,15 +74,16 @@ def _get_data(histograms: List[I3Histogram]) -> Optional[List[go.Bar]]:
         data = []
         for histo in histograms:
             name = histo.name if not use_collection_names else histo.collection  # type: ignore
-            data.append(go.Bar(x=x_values, y=histo.bin_values, text=text, name=name))
+            data.append(go.Bar(x=x_values,
+                               y=histo.bin_values,
+                               text=text,
+                               name=name))
     return data
 
 
 def i3histogram_to_plotly(histograms: Union[Optional[I3Histogram], List[I3Histogram]],
-                          title: Optional[str] = None,
-                          y_log: bool = False,
-                          alert_no_data: bool = False,
-                          no_title: bool = False) -> go.Figure:
+                          title: Optional[str] = None, y_log: bool = False,
+                          alert_no_data: bool = False, no_title: bool = False) -> go.Figure:
     """Return a plotly Bar graph object with a n overlapped histograms.
 
     If the contents in `histograms` are not complete, ignore any other data.

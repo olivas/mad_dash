@@ -80,7 +80,8 @@ def get_histograms(collection_name: str, database_name: str) -> List[api.I3Histo
         return []
 
     md_rc = create_simprod_dbms_rest_connection()
-    coll_histos_request_body = {'database': database_name, 'collection': collection_name}
+    coll_histos_request_body = {'database': database_name,
+                                'collection': collection_name}
     url = '/collections/histograms'
     response = md_rc.request_seq('GET', url, coll_histos_request_body)
 
@@ -88,18 +89,16 @@ def get_histograms(collection_name: str, database_name: str) -> List[api.I3Histo
     return [api.I3Histogram.from_dict(h) for h in response['histograms']]
 
 
-def get_histogram(histogram_name: str, collection_name: str,
-                  database_name: str) -> Optional[api.I3Histogram]:
+def get_histogram(histogram_name: str, collection_name: str, database_name: str
+                  ) -> Optional[api.I3Histogram]:
     """Return the histogram."""
     if not histogram_name or not collection_name or not database_name:
         return None
 
     md_rc = create_simprod_dbms_rest_connection()
-    histo_request_body = {
-        'database': database_name,
-        'collection': collection_name,
-        'name': histogram_name
-    }
+    histo_request_body = {'database': database_name,
+                          'collection': collection_name,
+                          'name': histogram_name}
     url = '/histogram'
     try:
         response = md_rc.request_seq('GET', url, histo_request_body)

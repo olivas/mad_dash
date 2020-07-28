@@ -48,15 +48,20 @@ def start(debug: bool = False) -> RestServer:
 
     # configure REST routes
     server = RestServer(debug=debug)
-    server.add_route(r'/$', MainHandler, args)
-    server.add_route(r'/databases/names$', DatabasesNamesHandler, args)  # get database names
-    server.add_route(r'/collections/names$', CollectionsNamesHandler, args)  # get collection names
-    server.add_route(r'/collections/histograms/names$', CollectionsHistogramsNamesHandler,
-                     args)  # get all histogram names in collection
-    server.add_route(r'/collections/histograms$', CollectionsHistogramsHandler,
-                     args)  # get all histogram objects in collection
-    server.add_route(r'/histogram$', HistogramHandler, args)  # get histogram object
-    server.add_route(r'/files/names$', FileNamesHandler, args)  # get file names
+    server.add_route(r'/$',
+                     MainHandler, args)
+    server.add_route(r'/databases/names$',
+                     DatabasesNamesHandler, args)  # get database names
+    server.add_route(r'/collections/names$',
+                     CollectionsNamesHandler, args)  # get collection names
+    server.add_route(r'/collections/histograms/names$',
+                     CollectionsHistogramsNamesHandler, args)  # get all histogram names in collection
+    server.add_route(r'/collections/histograms$',
+                     CollectionsHistogramsHandler, args)  # get all histogram objects in collection
+    server.add_route(r'/histogram$',
+                     HistogramHandler, args)  # get histogram object
+    server.add_route(r'/files/names$',
+                     FileNamesHandler, args)  # get file names
 
     server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
     return server

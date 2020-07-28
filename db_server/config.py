@@ -1,5 +1,6 @@
 """Config settings."""
 
+
 EXPECTED_CONFIG = {
     'MAD_DASH_AUTH_ALGORITHM': 'HS512',  # 'RS256',
     'MAD_DASH_AUTH_ISSUER': 'http://localhost:8888',  # 'maddash',
@@ -12,9 +13,9 @@ EXPECTED_CONFIG = {
     'MAD_DASH_REST_PORT': '8080',
 }
 
+
 AUTH_PREFIX = "maddash"
 
-EXCLUDE_DBS = [
-    'system.indexes', 'production', 'local', 'simprod_filecatalog', 'config', 'token_service',
-    'admin'
-]
+
+EXCLUDE_DBS = ['system.indexes', 'production', 'local',
+               'simprod_filecatalog', 'config', 'token_service', 'admin']
