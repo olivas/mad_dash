@@ -2,7 +2,7 @@
 
 import copy
 import time
-from typing import Any, List, Optional, Tuple, TypedDict, Union, cast, get_args
+from typing import Any, cast, get_args, List, Optional, Tuple, TypedDict, Union
 
 # types
 Num = Union[int, float]
@@ -21,8 +21,11 @@ class MongoHistogram(TypedDict):
     history: List[Num]
 
 
-def check_type(value: Any, type_: Union[type, Tuple[type, ...]],
-               member_type: Optional[Union[type, Tuple[type, ...]]] = None) -> Any:
+def check_type(
+    value: Any,
+    type_: Union[type, Tuple[type, ...]],
+    member_type: Optional[Union[type, Tuple[type, ...]]] = None,
+) -> Any:
     """Raise `TypeError` if `value` not of type, `type_`.
 
     Type check collection members by passing an iterable `value` and
@@ -33,7 +36,9 @@ def check_type(value: Any, type_: Union[type, Tuple[type, ...]],
     if member_type:
         for member in value:
             if not isinstance(member, member_type):
-                raise TypeError(f"Attribute member type should be {member_type} not {type(member)}")
+                raise TypeError(
+                    f"Attribute member type should be {member_type} not {type(member)}"
+                )
     return value
 
 
@@ -41,8 +46,16 @@ class I3Histogram:  # pylint: disable=R0902
     """A representation of a histogram."""
 
     # pylint: disable=R0913
-    def __init__(self, name: str, xmax: Num, xmin: Num, overflow: int, underflow: int,
-                 nan_count: int, bin_values: List[Num]) -> None:
+    def __init__(
+        self,
+        name: str,
+        xmax: Num,
+        xmin: Num,
+        overflow: int,
+        underflow: int,
+        nan_count: int,
+        bin_values: List[Num],
+    ) -> None:
         self.name = name
         self.xmax = xmax
         self.xmin = xmin
@@ -60,7 +73,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @name.setter
     def name(self, value: str) -> None:
-        if value == 'filelist':
+        if value == "filelist":
             raise NameError("histogram cannot be named 'filelist'")
         check_type(value, str)
         self.__name = value
@@ -136,7 +149,9 @@ class I3Histogram:  # pylint: disable=R0902
         self.__history = value
 
     @staticmethod
-    def from_dict(dict_: MongoHistogram) -> 'I3Histogram':  # https://github.com/python/typing/issues/58
+    def from_dict(
+        dict_: MongoHistogram,
+    ) -> "I3Histogram":  # https://github.com/python/typing/issues/58
         """Create a Histogram instance from a dict. Factory method.
 
         `dict_` must have correctly typed items and cannot have extra keys/fields.
@@ -153,19 +168,28 @@ class I3Histogram:  # pylint: disable=R0902
             TypeError -- if there's any mistyped items (attributes)
         """
         try:
-            i3histogram = I3Histogram(dict_['name'],
-                                      dict_['xmax'],
-                                      dict_['xmin'],
-                                      dict_['overflow'],
-                                      dict_['underflow'],
-                                      dict_['nan_count'],
-                                      dict_['bin_values'])
+            i3histogram = I3Histogram(
+                dict_["name"],
+                dict_["xmax"],
+                dict_["xmin"],
+                dict_["overflow"],
+                dict_["underflow"],
+                dict_["nan_count"],
+                dict_["bin_values"],
+            )
         except KeyError as e:
             raise AttributeError(f"histogram has missing field {str(e)}")
 
         # add extra items
-        mandatory_keys = ['name', 'xmax', 'xmin', 'overflow',
-                          'underflow', 'nan_count', 'bin_values']
+        mandatory_keys = [
+            "name",
+            "xmax",
+            "xmin",
+            "overflow",
+            "underflow",
+            "nan_count",
+            "bin_values",
+        ]
         for attr_name, attr_value in dict_.items():
             if attr_name not in mandatory_keys:
                 i3histogram.__setattr__(attr_name, attr_value)
@@ -177,10 +201,10 @@ class I3Histogram:  # pylint: disable=R0902
         dict_ = copy.deepcopy(vars(self))
 
         # remove class-property prefix from keys
-        prefix = '_I3Histogram__'
+        prefix = "_I3Histogram__"
         properties = [k for k in dict_ if k.startswith(prefix)]
         for p in properties:
-            dict_[p[len(prefix):]] = dict_.pop(p)
+            dict_[p[len(prefix) :]] = dict_.pop(p)
 
         # remove keys in `exclude`
         if exclude:
@@ -197,25 +221,29 @@ class I3Histogram:  # pylint: disable=R0902
             pseudo_first -- add 0.0 if `history` is empty (default: {False})
         """
         if not self.history and pseudo_first:
-            self.history = [0.0]  # must be old histogram, so it didn't come with a history
+            self.history = [
+                0.0
+            ]  # must be old histogram, so it didn't come with a history
         self.history.append(time.time())
 
-    def update(self, new_histo: 'I3Histogram') -> None:
+    def update(self, new_histo: "I3Histogram") -> None:
         """Update/increment/replace attribute values with those in `new_histo`.
 
         Append epoch timestamp to `history`.
         """
         for attr_name, attr_value in new_histo.to_dict().items():
-            if attr_name == 'bin_values':
-                bin_values = [b1 + b2 for b1, b2 in zip(self.bin_values, new_histo.bin_values)]
+            if attr_name == "bin_values":
+                bin_values = [
+                    b1 + b2 for b1, b2 in zip(self.bin_values, new_histo.bin_values)
+                ]
                 self.bin_values = bin_values
-            elif attr_name == 'overflow':
+            elif attr_name == "overflow":
                 self.overflow += new_histo.overflow
-            elif attr_name == 'underflow':
+            elif attr_name == "underflow":
                 self.underflow += new_histo.underflow
-            elif attr_name == 'nan_count':
+            elif attr_name == "nan_count":
                 self.nan_count += new_histo.nan_count
-            elif attr_name == 'history':
+            elif attr_name == "history":
                 self.add_to_history(pseudo_first=True)
             else:
                 self.__setattr__(attr_name, attr_value)

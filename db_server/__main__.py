@@ -7,12 +7,23 @@ from urllib.parse import quote_plus
 from motor.motor_tornado import MotorClient  # type: ignore
 
 # local imports
-from rest_tools.server import RestHandlerSetup, RestServer, from_environment  # type: ignore
+from rest_tools.server import (  # type: ignore
+    from_environment,
+    RestHandlerSetup,
+    RestServer
+)
 
 from .config import EXPECTED_CONFIG
-from .routes import (CollectionsHistogramsHandler, CollectionsHistogramsNamesHandler,
-                     CollectionsNamesHandler, DatabasesNamesHandler, FileNamesHandler,
-                     HistogramHandler, MadDashMotorClient, MainHandler)
+from .routes import (
+    CollectionsHistogramsHandler,
+    CollectionsHistogramsNamesHandler,
+    CollectionsNamesHandler,
+    DatabasesNamesHandler,
+    FileNamesHandler,
+    HistogramHandler,
+    MadDashMotorClient,
+    MainHandler
+)
 
 
 def start(debug: bool = False) -> RestServer:
@@ -22,14 +33,16 @@ def start(debug: bool = False) -> RestServer:
     for name in config:
         logging.info(f"{name} = {config[name]}")
 
-    args = RestHandlerSetup({
-        'auth': {
-            'secret': config['MAD_DASH_AUTH_SECRET'],
-            'issuer': config['MAD_DASH_AUTH_ISSUER'],
-            'algorithm': config['MAD_DASH_AUTH_ALGORITHM'],
-        },
-        'debug': debug
-    })
+    args = RestHandlerSetup(
+        {
+            "auth": {
+                "secret": config["MAD_DASH_AUTH_SECRET"],
+                "issuer": config["MAD_DASH_AUTH_ISSUER"],
+                "algorithm": config["MAD_DASH_AUTH_ALGORITHM"],
+            },
+            "debug": debug,
+        }
+    )
 
     # configure access to MongoDB as a backing store
     mongo_user = quote_plus(config["MAD_DASH_MONGODB_AUTH_USER"])
@@ -44,26 +57,29 @@ def start(debug: bool = False) -> RestServer:
     md_mc = MadDashMotorClient(MotorClient(mongodb_url))
     asyncio.get_event_loop().run_until_complete(md_mc.ensure_all_databases_indexes())
 
-    args['motor_client'] = MotorClient(mongodb_url)
+    args["motor_client"] = MotorClient(mongodb_url)
 
     # configure REST routes
     server = RestServer(debug=debug)
-    server.add_route(r'/$',
-                     MainHandler, args)
-    server.add_route(r'/databases/names$',
-                     DatabasesNamesHandler, args)  # get database names
-    server.add_route(r'/collections/names$',
-                     CollectionsNamesHandler, args)  # get collection names
-    server.add_route(r'/collections/histograms/names$',
-                     CollectionsHistogramsNamesHandler, args)  # get all histogram names in collection
-    server.add_route(r'/collections/histograms$',
-                     CollectionsHistogramsHandler, args)  # get all histogram objects in collection
-    server.add_route(r'/histogram$',
-                     HistogramHandler, args)  # get histogram object
-    server.add_route(r'/files/names$',
-                     FileNamesHandler, args)  # get file names
+    server.add_route(r"/$", MainHandler, args)
+    server.add_route(
+        r"/databases/names$", DatabasesNamesHandler, args
+    )  # get database names
+    server.add_route(
+        r"/collections/names$", CollectionsNamesHandler, args
+    )  # get collection names
+    server.add_route(
+        r"/collections/histograms/names$", CollectionsHistogramsNamesHandler, args
+    )  # get all histogram names in collection
+    server.add_route(
+        r"/collections/histograms$", CollectionsHistogramsHandler, args
+    )  # get all histogram objects in collection
+    server.add_route(r"/histogram$", HistogramHandler, args)  # get histogram object
+    server.add_route(r"/files/names$", FileNamesHandler, args)  # get file names
 
-    server.startup(address=config['MAD_DASH_REST_HOST'], port=int(config['MAD_DASH_REST_PORT']))
+    server.startup(
+        address=config["MAD_DASH_REST_HOST"], port=int(config["MAD_DASH_REST_PORT"])
+    )
     return server
 
 
@@ -75,5 +91,5 @@ def main() -> None:
     loop.run_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

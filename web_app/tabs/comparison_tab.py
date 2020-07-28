@@ -22,100 +22,112 @@ def layout() -> html.Div:
             html.Div(
                 style=WIDTH_45,
                 children=[
-                    html.H6('Database'),
+                    html.H6("Database"),
                     dcc.Dropdown(
-                        id='database-name-dropdown-tab2',
+                        id="database-name-dropdown-tab2",
                         value=get_default_database(),
-                        options=get_database_name_options())
-                ]),
-
-
+                        options=get_database_name_options(),
+                    ),
+                ],
+            ),
+            ####
             html.Hr(),
-
+            ####
             html.Div(
                 children=[
-                    html.H6('Collections'),
-                    dcc.Dropdown(
-                        id='collections-dropdown-tab2',
-                        multi=True)
-                ]),
-
+                    html.H6("Collections"),
+                    dcc.Dropdown(id="collections-dropdown-tab2", multi=True),
+                ]
+            ),
+            ####
             html.Hr(),
-
+            ####
             html.Div(
                 children=[
-                    html.H3('Histogram Comparisons'),
+                    html.H3("Histogram Comparisons"),
                     html.Div(
                         style=CENTERED_100,
                         children=[
                             html.Div(
                                 style=WIDTH_45,
-                                children=[
-                                    dcc.Dropdown(id='histogram-dropdown-tab2')
-                                ])
-                        ]),
-
+                                children=[dcc.Dropdown(id="histogram-dropdown-tab2")],
+                            )
+                        ],
+                    ),
                     html.Div(
-                        className='row',
+                        className="row",
                         style=CENTERED_100,
                         children=[
-                            html.Div(dcc.Graph(id='plot-histogram-tab2')),
+                            html.Div(dcc.Graph(id="plot-histogram-tab2")),
                             daq.BooleanSwitch(  # pylint: disable=E1101
-                                id='toggle-log-tab2',
-                                on=False,
-                                label='log')
-                        ]),
+                                id="toggle-log-tab2", on=False, label="log"
+                            ),
+                        ],
+                    ),
+                    ####
                     html.Hr(style=SHORT_HR),
+                    ####
                     html.Div(
-                        className='row',
+                        className="row",
                         children=[
                             html.Div(
-                                className='two columns',
+                                className="two columns",
                                 style=WIDTH_45,
-                                children=[
-                                    dcc.Graph(id='plot-histogram-ratio-tab2')
-                                ]),
+                                children=[dcc.Graph(id="plot-histogram-ratio-tab2")],
+                            ),
                             html.Div(
-                                className='two columns',
+                                className="two columns",
                                 style=WIDTH_45,
-                                children=[
-                                    dcc.Graph(id='plot-histogram-cdf-tab2')
-                                ])
-                        ]),
-                ]),
-
+                                children=[dcc.Graph(id="plot-histogram-cdf-tab2")],
+                            ),
+                        ],
+                    ),
+                ]
+            ),
+            ####
             html.Hr(),
-
-            html.Table(id='collection-comparison-result-tab2'),
-        ])
+            ####
+            html.Table(id="collection-comparison-result-tab2"),
+        ]
+    )
 
 
 # --------------------------------------------------------------------------------------------------
 # Collections
 
 
-@app.callback(Output('collections-dropdown-tab2', 'options'),
-              [Input('database-name-dropdown-tab2', 'value')])  # type: ignore
+@app.callback(
+    Output("collections-dropdown-tab2", "options"),
+    [Input("database-name-dropdown-tab2", "value")],
+)  # type: ignore
 def set_collection_options(database_name: str) -> List[Dict[str, str]]:
     """Return the list of collections for the dropdown menu."""
     collection_names = db.get_collection_names(database_name)
 
-    return [{'label': name, 'value': name} for name in collection_names]
+    return [{"label": name, "value": name} for name in collection_names]
 
 
 # --------------------------------------------------------------------------------------------------
 # Histograms
 
 
-@app.callback(Output('histogram-dropdown-tab2', 'options'),
-              [Input('database-name-dropdown-tab2', 'value'),
-               Input('collections-dropdown-tab2', 'value')])  # type: ignore
-def update_histogram_dropdown_options(database_name: str, collection_names: List[str]) -> List[Dict[str, str]]:
+@app.callback(
+    Output("histogram-dropdown-tab2", "options"),
+    [
+        Input("database-name-dropdown-tab2", "value"),
+        Input("collections-dropdown-tab2", "value"),
+    ],
+)  # type: ignore
+def update_histogram_dropdown_options(
+    database_name: str, collection_names: List[str]
+) -> List[Dict[str, str]]:
     """Return the collections' mutual list of histograms for dropdown menu."""
     if not collection_names:
         return []
 
-    all_histogram_names = [db.get_histogram_names(c, database_name) for c in collection_names]
+    all_histogram_names = [
+        db.get_histogram_names(c, database_name) for c in collection_names
+    ]
 
     # get common histogram names
     sets_of_names = [set(names) for names in all_histogram_names]
@@ -123,41 +135,59 @@ def update_histogram_dropdown_options(database_name: str, collection_names: List
         return []
     histogram_names = sorted(set.intersection(*sets_of_names))
 
-    return [{'label': name, 'value': name} for name in histogram_names]
+    return [{"label": name, "value": name} for name in histogram_names]
 
 
 @app.callback(
-    Output('plot-histogram-tab2', 'figure'),
-    [Input('histogram-dropdown-tab2', 'value'),
-     Input('histogram-dropdown-tab2', 'options'),
-     Input('toggle-log-tab2', 'on'),
-     Input('database-name-dropdown-tab2', 'value'),
-     Input('collections-dropdown-tab2', 'value')])  # type: ignore
-def update_histogram(histogram_name: str, histogram_options: List[str], log: bool,
-                     database_name: str, collection_names: List[str]) -> go.Figure:
+    Output("plot-histogram-tab2", "figure"),
+    [
+        Input("histogram-dropdown-tab2", "value"),
+        Input("histogram-dropdown-tab2", "options"),
+        Input("toggle-log-tab2", "on"),
+        Input("database-name-dropdown-tab2", "value"),
+        Input("collections-dropdown-tab2", "value"),
+    ],
+)  # type: ignore
+def update_histogram(
+    histogram_name: str,
+    histogram_options: List[str],
+    log: bool,
+    database_name: str,
+    collection_names: List[str],
+) -> go.Figure:
     """Plot each collection's histograms on the same plot."""
     if not collection_names or not histogram_options:
         return hc.i3histogram_to_plotly(None, y_log=log, no_title=True)
 
-    all_histograms = [db.get_histogram(histogram_name, c, database_name) for c in collection_names]
+    all_histograms = [
+        db.get_histogram(histogram_name, c, database_name) for c in collection_names
+    ]
 
-    return hc.i3histogram_to_plotly(list(filter(None, all_histograms)), y_log=log, no_title=True)
+    return hc.i3histogram_to_plotly(
+        list(filter(None, all_histograms)), y_log=log, no_title=True
+    )
 
 
 # --------------------------------------------------------------------------------------------------
 # Comparison Table
 
 
-@app.callback(Output('collection-comparison-result-tab2', 'children'),
-              [Input('database-name-dropdown-tab2', 'value'),
-               Input('collections-dropdown-tab2', 'value')])  # type: ignore
-def compare_collections(database_name: str, collection_names: List[str]) -> List[html.Tr]:
+@app.callback(
+    Output("collection-comparison-result-tab2", "children"),
+    [
+        Input("database-name-dropdown-tab2", "value"),
+        Input("collections-dropdown-tab2", "value"),
+    ],
+)  # type: ignore
+def compare_collections(
+    database_name: str, collection_names: List[str]
+) -> List[html.Tr]:
     """TODO."""
     if not collection_names:
         return []
 
     print("compare_collections: Comparing...")
-    headers = ['Histogram', 'Chi2', 'KS', 'AD', 'Result', 'Notes']
+    headers = ["Histogram", "Chi2", "KS", "AD", "Result", "Notes"]
     table_elements = [html.Tr([html.Th(h) for h in headers])]
 
     # def extract_histograms(database_name: str, collection_name: str) -> Dict[str, str]:
