@@ -6,8 +6,8 @@ import pickle
 from typing import Any, Dict
 
 # local imports
+from api import MongoCollection
 from production_client import ingest_pickled_collections
-from production_client.ingest_pickled_collections import Collection
 
 
 class TestIngestPickledCollections:
@@ -37,7 +37,7 @@ class TestIngestPickledCollections:
         "filelist": {
             "files": ["test_one.i3.zst", "test_two.i3.zst", "test_three.i3.zst"]
         },
-    }  # type: Collection
+    }  # type: MongoCollection
 
     @staticmethod
     def make_pickle(collection_name: str, dict_: Dict[str, Any]) -> str:
@@ -74,11 +74,11 @@ class TestIngestPickledCollections:
         collection = copy.deepcopy(TestIngestPickledCollections.COLLECTION)
 
         collection_name = "TEST_20_COLLECTION"
-        for h in ingest_pickled_collections.get_each_histogram(
+        for histo in ingest_pickled_collections.get_each_histogram(
             collection, collection_name
         ):
-            assert h["name"] in collection
-            assert h == collection[h["name"]]
+            assert histo["name"] in collection
+            assert histo == collection[histo["name"]]
 
     @staticmethod
     def test_30() -> None:
@@ -87,4 +87,4 @@ class TestIngestPickledCollections:
 
         collection_name = "TEST_30_COLLECTION"
         filelist = ingest_pickled_collections.get_filelist(collection, collection_name)
-        assert filelist == collection["filelist"]["files"]
+        assert filelist == collection["filelist"]["files"]  # type: ignore

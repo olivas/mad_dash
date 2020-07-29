@@ -6,19 +6,15 @@ import logging
 import os
 import pickle
 import re
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from typing import Iterator, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
 
 # local imports
+import api
+from api import FilelistList, MongoCollection, MongoHistogram
 from rest_tools.client import RestClient  # type: ignore
-
-# type aliases
-FilelistList = List[str]
-FilelistDict = Dict[str, Union[Any, FilelistList]]
-Histogram = Dict[str, Any]
-Collection = Dict[str, Union[FilelistDict, Histogram]]
 
 
 async def post_filelist(
@@ -40,9 +36,11 @@ async def post_filelist(
     logging.debug(f"POST response: {post_resp}.")
 
 
-def get_filelist(collection: Collection, collection_name: str) -> FilelistList:
+def get_filelist(
+    collection: MongoCollection, collection_name: str
+) -> Optional[FilelistList]:
     """Get the filelist in the collection."""
-    filelist = collection["filelist"]["files"]
+    filelist = api.get_mongo_filelist(collection)
     if filelist:
         logging.info(
             f"From collection ('{collection_name}'), grabbed filelist ({len(filelist)} files)."
@@ -54,7 +52,7 @@ def get_filelist(collection: Collection, collection_name: str) -> FilelistList:
 
 async def post_histogram(
     rc: RestClient,
-    histo: Histogram,
+    histo: MongoHistogram,
     collection_name: str,
     database_name: str,
     update: bool = False,
@@ -74,16 +72,14 @@ async def post_histogram(
 
 
 def get_each_histogram(
-    collection: Collection, collection_name: str
-) -> Iterator[Histogram]:
+    collection: MongoCollection, collection_name: str
+) -> Iterator[MongoHistogram]:
     """Get all histograms in collection."""
-    for k, v in collection.items():
-        if k == "filelist":
-            continue
+    for histo in api.yield_mongo_histograms(collection):
         logging.debug(
-            f"From collection ('{collection_name}'), grabbed histogram ('{v['name']}')."
+            f"From collection ('{collection_name}'), grabbed histogram ('{histo['name']}')."
         )
-        yield v
+        yield histo
 
 
 def get_all_pickles(paths: List[str], recurse: bool = False) -> List[str]:
@@ -114,18 +110,18 @@ def get_all_pickles(paths: List[str], recurse: bool = False) -> List[str]:
 
 def get_each_collection(
     paths: List[str], recurse: bool = False
-) -> Iterator[Tuple[Collection, str]]:
+) -> Iterator[Tuple[MongoCollection, str]]:
     """Generate histograms and file-lists from pickles at given paths."""
     pickles = get_all_pickles(paths, recurse=recurse)
 
-    for p in pickles:
+    for pkl in pickles:
         # unpickle
-        with open(p, "rb") as f:
+        with open(pkl, "rb") as f:
             collection = pickle.load(f)
-        logging.debug(f"Unpickled collection at {p}.")
+        logging.debug(f"Unpickled collection at {pkl}.")
         # get name
-        name = re.findall(r"/([^/]*).pkl$", p)[0]
-        logging.debug(f"Name for {p} is {name}.")
+        name = re.findall(r"/([^/]*).pkl$", pkl)[0]
+        logging.debug(f"Name for {pkl} is {name}.")
         # yield
         logging.info(f"Grabbed collection, {name}.")
         yield (collection, name)
@@ -190,8 +186,8 @@ async def main() -> None:
 
     rc = get_rest_client(args.dbms_url, args.token_url)
     for collection, name in get_each_collection(args.paths, args.recurse_paths):
-        for h in get_each_histogram(collection, name):
-            await post_histogram(rc, h, name, args.database)
+        for histo in get_each_histogram(collection, name):
+            await post_histogram(rc, histo, name, args.database)
 
         filelist = get_filelist(collection, name)
         if filelist:

@@ -28,20 +28,24 @@ class TestDBServerWebRole:
         databases = db_rc.request_seq("GET", "/databases/names")
         print(databases)
 
-        for d in databases["databases"]:
-            db_request_body = {"database": d}
+        for db in databases["databases"]:
+            db_request_body = {"database": db}
             collections = db_rc.request_seq(
                 "GET", "/collections/names", db_request_body
             )
             print(collections)
-            for c in collections["collections"]:
-                coll_request_body = {"database": d, "collection": c}
+            for coll in collections["collections"]:
+                coll_request_body = {"database": db, "collection": coll}
                 histograms = db_rc.request_seq(
                     "GET", "/collections/histograms/names", coll_request_body
                 )
                 print(histograms)
-                for h in histograms["histograms"]:
-                    histo_request_body = {"database": d, "collection": c, "name": h}
+                for histo_name in histograms["histograms"]:
+                    histo_request_body = {
+                        "database": db,
+                        "collection": coll,
+                        "name": histo_name,
+                    }
                     histo = db_rc.request_seq("GET", "/histogram", histo_request_body)
                     print(histo)
                 filelist = db_rc.request_seq("GET", "/files/names", coll_request_body)

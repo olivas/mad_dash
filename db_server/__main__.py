@@ -10,7 +10,7 @@ from motor.motor_tornado import MotorClient  # type: ignore
 from rest_tools.server import (  # type: ignore
     from_environment,
     RestHandlerSetup,
-    RestServer
+    RestServer,
 )
 
 from .config import EXPECTED_CONFIG
@@ -22,7 +22,7 @@ from .routes import (
     FileNamesHandler,
     HistogramHandler,
     MadDashMotorClient,
-    MainHandler
+    MainHandler,
 )
 
 

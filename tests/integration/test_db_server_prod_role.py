@@ -96,7 +96,7 @@ class TestDBServerProdRole:
         return updated_histo
 
     @staticmethod
-    def test_histo(db_rc: RestClient) -> None:
+    def test_histo(db_rc: RestClient) -> None:  # pylint: disable=R0914
         """Run posts with updating."""
 
         def assert_get(histo: Histogram) -> None:

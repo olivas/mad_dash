@@ -2,12 +2,14 @@
 
 import copy
 import time
-from typing import Any, cast, get_args, List, Optional, Tuple, TypedDict, Union
+import typing
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TypedDict, Union
 
 # types
 Num = Union[int, float]
 
 
+# types
 class MongoHistogram(TypedDict):
     """Dict representation of a histogram for db, serialization, and typing."""
 
@@ -19,6 +21,28 @@ class MongoHistogram(TypedDict):
     nan_count: int
     bin_values: List[Num]
     history: List[Num]
+
+
+# types
+FilelistList = List[str]
+_FilelistDict = Dict[str, Union[Any, FilelistList]]
+MongoCollection = Dict[str, Union[_FilelistDict, MongoHistogram]]
+
+
+def yield_mongo_histograms(collection: MongoCollection) -> Iterator[MongoHistogram]:
+    """Yield the MongoHistogram objects (dicts) from the given collection."""
+    for name, histo in collection.items():
+        if name == "filelist":
+            continue
+        yield typing.cast(MongoHistogram, histo)
+
+
+def get_mongo_filelist(collection: MongoCollection) -> Optional[FilelistList]:
+    """Return the FilelistList object (list) from the given collection."""
+    try:
+        return collection["filelist"]["files"]  # type: ignore
+    except KeyError:
+        return None
 
 
 def check_type(
@@ -85,7 +109,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmax.setter
     def xmax(self, value: Num) -> None:
-        check_type(value, get_args(Num))
+        check_type(value, typing.get_args(Num))
         self.__xmax = value
 
     @property
@@ -95,7 +119,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @xmin.setter
     def xmin(self, value: Num) -> None:
-        check_type(value, get_args(Num))
+        check_type(value, typing.get_args(Num))
         self.__xmin = value
 
     @property
@@ -135,7 +159,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @bin_values.setter
     def bin_values(self, value: List[Num]) -> None:
-        check_type(value, list, get_args(Num))
+        check_type(value, list, typing.get_args(Num))
         self.__bin_values = value
 
     @property
@@ -145,7 +169,7 @@ class I3Histogram:  # pylint: disable=R0902
 
     @history.setter
     def history(self, value: List[Num]) -> None:
-        check_type(value, list, get_args(Num))
+        check_type(value, list, typing.get_args(Num))
         self.__history = value
 
     @staticmethod
@@ -208,11 +232,11 @@ class I3Histogram:  # pylint: disable=R0902
 
         # remove keys in `exclude`
         if exclude:
-            for k in exclude:
-                if k in dict_:
-                    del dict_[k]
+            for key in exclude:
+                if key in dict_:
+                    del dict_[key]
 
-        return cast(MongoHistogram, dict_)
+        return typing.cast(MongoHistogram, dict_)
 
     def add_to_history(self, pseudo_first: bool = False) -> None:
         """Append epoch timestamp to `history`.

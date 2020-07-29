@@ -105,16 +105,16 @@ class MadDashMotorClient:
         """Return collection's histograms as dicts."""
         collection = self.get_collection(database_name, collection_name)
 
-        objs = []
-        async for o in collection.find(projection=REMOVE_ID):
-            objs.append(o)
-
-        mongo_histos = [d for d in objs if d["name"] != "filelist"]
+        mongo_histos = [
+            o
+            async for o in collection.find(projection=REMOVE_ID)
+            if o["name"] != "filelist"
+        ]
 
         # type check
         try:
-            for h in mongo_histos:
-                _ = I3Histogram.from_dict(h)
+            for histo in mongo_histos:
+                _ = I3Histogram.from_dict(histo)
         except (NameError, AttributeError, TypeError) as e:
             raise tornado.web.HTTPError(500, reason=str(e))
 
@@ -127,9 +127,9 @@ class MadDashMotorClient:
 class BaseMadDashHandler(RestHandler):  # type: ignore  # pylint: disable=W0223
     """BaseMadDashHandler is a RestHandler for all Mad-Dash routes."""
 
-    def initialize(
+    def initialize(  # pylint: disable=W0221
         self, motor_client: MotorClient, *args: Any, **kwargs: Any
-    ) -> None:  # pylint: disable=W0221
+    ) -> None:
         """Initialize a BaseMadDashHandler object."""
         super(BaseMadDashHandler, self).initialize(*args, **kwargs)
         # self.motor_client = motor_client  # pylint: disable=W0201
@@ -201,11 +201,6 @@ class CollectionsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
 # -----------------------------------------------------------------------------
 
 
-def go(_: List[str]) -> int:
-    """Do it."""
-    return 5
-
-
 class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=W0223
     """Handle querying list of histograms' names."""
 
@@ -219,10 +214,6 @@ class CollectionsHistogramsNamesHandler(BaseMadDashHandler):  # pylint: disable=
             database_name, collection_name
         )
         histogram_names = [c["name"] for c in mongo_histos]
-
-        print(f"\n\n\n\n\n\n\n {mongo_histos} \n\n\n\n\n\n\n")
-
-        go(histogram_names)
 
         self.write(
             {
