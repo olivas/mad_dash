@@ -6,20 +6,28 @@ import logging
 import os
 import pickle
 import re
+import sys
 from typing import Iterator, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
 
 # local imports
-import api
-from api import FilelistList, MongoCollection, MongoHistogram
 from rest_tools.client import RestClient  # type: ignore
+
+# try import relative
+try:
+    import api
+except ModuleNotFoundError:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+    sys.path.insert(0, parent_dir_path)
+    import api
 
 
 async def post_filelist(
     rc: RestClient,
-    filelist: FilelistList,
+    filelist: api.FilelistList,
     collection_name: str,
     database_name: str,
     update: bool = False,
@@ -37,8 +45,8 @@ async def post_filelist(
 
 
 def get_filelist(
-    collection: MongoCollection, collection_name: str
-) -> Optional[FilelistList]:
+    collection: api.MongoCollection, collection_name: str
+) -> Optional[api.FilelistList]:
     """Get the filelist in the collection."""
     filelist = api.get_mongo_filelist(collection)
     if filelist:
@@ -52,7 +60,7 @@ def get_filelist(
 
 async def post_histogram(
     rc: RestClient,
-    histo: MongoHistogram,
+    histo: api.MongoHistogram,
     collection_name: str,
     database_name: str,
     update: bool = False,
@@ -72,8 +80,8 @@ async def post_histogram(
 
 
 def get_each_histogram(
-    collection: MongoCollection, collection_name: str
-) -> Iterator[MongoHistogram]:
+    collection: api.MongoCollection, collection_name: str
+) -> Iterator[api.MongoHistogram]:
     """Get all histograms in collection."""
     for histo in api.yield_mongo_histograms(collection):
         logging.debug(
@@ -110,7 +118,7 @@ def get_all_pickles(paths: List[str], recurse: bool = False) -> List[str]:
 
 def get_each_collection(
     paths: List[str], recurse: bool = False
-) -> Iterator[Tuple[MongoCollection, str]]:
+) -> Iterator[Tuple[api.MongoCollection, str]]:
     """Generate histograms and file-lists from pickles at given paths."""
     pickles = get_all_pickles(paths, recurse=recurse)
 
