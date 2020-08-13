@@ -2,3 +2,5 @@
 *~
 mdvenv
 mdenv
+tests/data
+src
