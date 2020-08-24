@@ -11,6 +11,7 @@ A REST server that interfaces a local MongoDB server
 
 ### Getting Started
     python3 -m virtualenv -p python3 mad_dash_db_server
+    . mad_dash_db_server/bin/activate
     pip install -r db_server/requirements.txt
 
 #### *Optional:* First Kill All Active MongoDB Daemons
@@ -23,7 +24,6 @@ A REST server that interfaces a local MongoDB server
     ./db_server/resources/token_test_server.sh
 
 ### Running the Server
-    . mad_dash_db_server/bin/activate
     python -m db_server
 
 
@@ -50,6 +50,7 @@ A dashboard for viewing and comparing histograms
 
 ### Getting Started
     python3 -m virtualenv -p python3 mad_dash_web_app
+    . mad_dash_web_app/bin/activate
     pip install -r web_app/requirements.txt
 
 ### Running the Server
